@@ -73,3 +73,8 @@
 - [ ] Add a unified-intelligence explanation that distinguishes a member’s consented signals, public community aggregates, and public unverified discussion without profiling private community activity.
 - [ ] Make verified country-specific “Where to stream” provider names and offer types the visually primary field on every catalog-backed search, recommendation, and title card.
 - [ ] Add source-boundary and accessibility tests for consented viewing signals, aggregate-only community context, and prominent provider availability states.
+- [ ] Add source-colour-coded public-web, critic, and public-discussion tags with attribution, explicit evidence level, and a strict unverified-context boundary.
+- [ ] Research official or licensed catalog/integration paths for major streaming providers and document which sources can support direct availability data versus outbound reference links only.
+- [ ] Ensure verified country-specific “Where to stream” data remains visually and semantically dominant over all public-web and discussion tags.
+- [ ] Verify the published scheduled callback accepts only its persisted cron identity and reports `catalogConfigured:false` safely when no catalog token is configured.
+- [x] Add a focused scheduled-refresh test for no-token, unknown-cron, and orphan-cron behavior before the final release checkpoint.

@@ -28,7 +28,8 @@ export async function streamwiseRefreshHandler(req: Request, res: Response) {
     const cronUser = await sdk.authenticateRequest(req);
     if (!cronUser.isCron || !cronUser.taskUid) return res.status(403).json({ error: "cron-only" });
     const job = await getScheduledJobByTaskUid(cronUser.taskUid);
-    if (!job || job.jobKey !== STREAMWISE_REFRESH_JOB_KEY) return res.status(403).json({ error: "unrecognized-cron" });
+    if (!job) return res.json({ ok: true, skipped: "orphan-cron" });
+    if (job.jobKey !== STREAMWISE_REFRESH_JOB_KEY) return res.status(403).json({ error: "unrecognized-cron" });
     const result = await runOptInRefreshBatch();
     return res.json({ ok: true, ...result, timestamp: new Date().toISOString() });
   } catch (error) {
