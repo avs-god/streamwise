@@ -65,7 +65,7 @@
 - [ ] Research and document permitted, attributable sources for catalog recommendations, external ratings, critic coverage, and public review links without scraping protected review content.
 - [ ] Add deterministic recommendation pathways for genre, similar titles, post-watch selections, adaptations, and popular or well-rated catalog titles.
 - [ ] Add enriched title pages with verified legal offers, available catalog metadata, clearly sourced external-rating states, source-linked critic coverage, and related titles.
-- [ ] Add authenticated member ratings and reviews with public visibility, report controls, and community aggregates that never fabricate reviews or ratings.
+- [x] Add authenticated member ratings and reviews with public visibility, report controls, and community aggregates that never fabricate reviews or ratings.
 - [ ] Keep all external review and rating labels source-specific, timestamped where available, and explicitly unavailable when no permitted provider is configured.
 - [ ] Add automated tests for deterministic recommendation inputs, rating aggregation, review validation, fact separation, and accessible title-detail workflows.
 - [ ] Validate search, recommendation, title-detail, rating, review, responsive, keyboard, type, test, and production-build flows.
@@ -80,7 +80,7 @@
 - [x] Add a focused scheduled-refresh test for no-token, unknown-cron, and orphan-cron behavior before the final release checkpoint.
 - [ ] Restore the provider-first deterministic discovery surface with title, genre, similar, post-watch, adaptation, popular, and top-rated pathways.
 - [ ] Restore a dedicated title page with country-specific legal provider offers first, permitted external rating and critic references, community rating and reviews, and related titles.
-- [ ] Keep IMDb and Rotten Tomatoes as outbound-only references until an explicitly permitted licensed rating integration is configured; never scrape or reproduce their scores or review text.
+- [x] Keep IMDb and Rotten Tomatoes as outbound-only references until an explicitly permitted licensed rating integration is configured; never scrape or reproduce their scores or review text.
 - [ ] Restore consented private viewing signals, public community rating aggregates, and strict exclusion of public discussion from personal profiling and verified catalog evidence.
 - [x] Add a dedicated deterministic recommendations surface for popular and top-rated films and series, while retaining candid no-catalog states.
 - [ ] Add moderated, title-linked discussion threads for plot talk, recommendations, and general movie or series conversation, including spoiler guidance and visibility status.
@@ -96,3 +96,5 @@
 - [x] Add tests for simple “where to watch” wording, useful source-link retention, and exclusion of unverified leads from legal provider facts.
 - [x] Build the final distribution and start the generated server outside the development watcher using production environment configuration.
 - [x] Exercise a standalone HTTP request against the production server, verify static assets and core route fallback, and document required runtime configuration plus optional catalog-token behavior.
+- [x] Add visible per-review report controls on the title-page community review list and wire them to the existing community report workflow.
+- [ ] Add regression and browser coverage for title-page review reporting and moderation visibility states.

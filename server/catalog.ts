@@ -232,3 +232,10 @@ export async function discoverCatalog(input: { mode: DiscoveryMode; mediaType: "
   }));
   return { configured: true, titles: pages.flat().slice(0, 16), checkedAt: new Date().toISOString(), explanation: input.mode === "popular" ? "Catalog popularity ranking. Provider availability must be opened per title for the selected country." : "Catalog rating ranking with a minimum vote count. Provider availability must be opened per title for the selected country." };
 }
+
+export async function getSimilarCatalogTitles(input: { id: number; mediaType: "movie" | "tv"; language: string }): Promise<{ configured: boolean; titles: CatalogTitle[] }> {
+  if (!isCatalogConfigured()) return { configured: false, titles: [] };
+  type Result = { id: number; title?: string; name?: string; original_title?: string; original_name?: string; overview?: string; poster_path?: string | null; release_date?: string; first_air_date?: string };
+  const data = await tmdbFetch<{ results?: Result[] }>(`/${input.mediaType}/${input.id}/similar?language=${encodeURIComponent(cleanLanguage(input.language))}&page=1`);
+  return { configured: true, titles: (data.results ?? []).slice(0, 8).map(item => ({ id: item.id, mediaType: input.mediaType, title: item.title ?? item.name ?? "Untitled", originalTitle: item.original_title ?? item.original_name ?? null, overview: item.overview ?? null, posterPath: item.poster_path ?? null, releaseDate: item.release_date ?? item.first_air_date ?? null })) };
+}

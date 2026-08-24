@@ -39,7 +39,7 @@ import {
   setCommunityTitleRating,
   setCommunityThreadStatus,
 } from "./db";
-import { discoverCatalog, getCatalogDetail, isCatalogConfigured, searchCatalog } from "./catalog";
+import { discoverCatalog, getCatalogDetail, getSimilarCatalogTitles, isCatalogConfigured, searchCatalog } from "./catalog";
 import { refreshTrackedTitle, refreshTrackedTitlesForUser } from "./trackingService";
 import { syncRenewalAlerts } from "./alertService";
 import { researchDiscoveryLead } from "./aiDiscovery";
@@ -80,6 +80,7 @@ export const appRouter = router({
     search: publicProcedure.input(z.object({ query: z.string().trim().min(2).max(120), language: z.string().default("en-US") })).query(({ input }) => searchCatalog(input)),
     title: publicProcedure.input(z.object({ id: z.number().int().positive(), mediaType: z.enum(["movie", "tv"]), region: z.string(), language: z.string().default("en-US") })).query(({ input }) => getCatalogDetail(input)),
     discover: publicProcedure.input(z.object({ mode: z.enum(["popular", "top_rated"]), mediaType: z.enum(["movie", "tv", "all"]).default("all"), region: z.string().regex(/^[A-Z]{2}$/), language: z.string().default("en-US") })).query(({ input }) => discoverCatalog(input)),
+    similar: publicProcedure.input(z.object({ id: z.number().int().positive(), mediaType: z.enum(["movie", "tv"]), language: z.string().default("en-US") })).query(({ input }) => getSimilarCatalogTitles(input)),
   }),
   ai: router({
     research: protectedProcedure.input(z.object({ query: z.string().trim().min(3).max(220), region: z.string().regex(/^[A-Z]{2}$/), language: z.string().min(2).max(20) })).mutation(({ input }) => researchDiscoveryLead(input)),

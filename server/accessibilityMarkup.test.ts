@@ -39,4 +39,26 @@ describe("keyboard and semantic-accessibility regression checks", () => {
     expect(panel).toContain("Unverified discussion");
     expect(panel).toContain("never used as availability, alert, tracking, or recommendation evidence");
   });
+
+  it("keeps external rating and critic links outbound-only on title pages", () => {
+    const page = source("client/src/pages/TitlePage.tsx");
+    expect(page).toContain("IMDb reference");
+    expect(page).toContain("Rotten Tomatoes reference");
+    expect(page).toContain("Critic and blog reading");
+    expect(page).toContain("does not reproduce their protected scores or review text");
+  });
+
+  it("keeps title-level community rating, review, and report controls available", () => {
+    const page = source("client/src/pages/TitlePage.tsx");
+    expect(page).toContain("Write a community review");
+    expect(page).toContain("Publish community review");
+    expect(page).toContain("Report review");
+    expect(page).toContain("setTitleRating");
+  });
+
+  it("keeps similar-title navigation explicitly catalog-derived", () => {
+    const page = source("client/src/pages/TitlePage.tsx");
+    expect(page).toContain("Catalog-derived similar");
+    expect(page).toContain("catalog.similar.useQuery");
+  });
 });
