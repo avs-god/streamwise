@@ -61,4 +61,13 @@ describe("keyboard and semantic-accessibility regression checks", () => {
     expect(page).toContain("Catalog-derived similar");
     expect(page).toContain("catalog.similar.useQuery");
   });
+
+  it("keeps public-web research loading, failure, sign-in, and provenance states visible", () => {
+    const panel = source("client/src/components/AiResearchPanel.tsx");
+    expect(panel).toContain("Sign in for web context");
+    expect(panel).toContain("Researching public sources independently");
+    expect(panel).toContain("Public-web research could not be completed");
+    expect(panel).toContain("Insufficient source evidence");
+    expect(panel).toContain("Separate evidence");
+  });
 });
