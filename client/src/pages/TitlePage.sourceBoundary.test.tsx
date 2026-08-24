@@ -9,7 +9,7 @@ const authState = vi.hoisted(() => ({ user: null as { id: number } | null }));
 vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => ({ user: authState.user, loading: false }) }));
 vi.mock("@/lib/trpc", () => ({ trpc: { useUtils: () => ({ community: { titleRatingSummary: { invalidate: vi.fn() }, titleReviews: { invalidate: vi.fn() } } }), community: { titleRatingSummary: { useQuery: () => ({ data: { average: null, count: 0 } }) }, titleReviews: { useQuery: () => ({ data: [] }) }, setTitleRating: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, contribute: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, report: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) } } } }));
 
-import { ExternalReferencePanel, ReviewReportAction, TitleCommunity, TitleStandbyNotice } from "./TitlePage";
+import { ExternalReferencePanel, ReviewReportAction, TitleCommunity, TitleMetadata, TitleStandbyNotice } from "./TitlePage";
 
 afterEach(() => { cleanup(); authState.user = null; });
 
@@ -19,7 +19,18 @@ describe("Title page source boundary", () => {
     expect(screen.getByText(/outbound-only references/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "IMDb reference" })).toHaveAttribute("href", "https://www.imdb.com/find/?q=Inception");
     expect(screen.getByRole("link", { name: "Rotten Tomatoes reference" })).toHaveAttribute("href", "https://www.rottentomatoes.com/search?search=Inception");
+    expect(screen.getByRole("link", { name: "RogerEbert.com reading" })).toHaveAttribute("href", "https://www.rogerebert.com/search?query=Inception");
+    expect(screen.getByRole("link", { name: "Variety reading" })).toHaveAttribute("href", "https://variety.com/?s=Inception");
+    expect(screen.getByRole("link", { name: "The Guardian film reading" })).toHaveAttribute("href", "https://www.theguardian.com/film");
     expect(screen.getByText(/No score, review text, or rating timestamp is imported/)).toBeInTheDocument();
+    expect(screen.getByText(/Critic-reading links are source-specific outbound searches/)).toBeInTheDocument();
+  });
+
+  it("renders permitted catalog metadata only when supplied by the catalog", () => {
+    render(<TitleMetadata title={{ releaseDate: "2010-07-16", runtime: 148, genres: ["Action", "Science Fiction"] }} />);
+    expect(screen.getByLabelText("Catalog title details")).toHaveTextContent("Released: Jul 16, 2010");
+    expect(screen.getByLabelText("Catalog title details")).toHaveTextContent("Runtime: 148 min");
+    expect(screen.getByLabelText("Catalog title details")).toHaveTextContent("Genres: Action · Science Fiction");
   });
 
   it("keeps external references explicitly unavailable in the no-catalog title state", () => {

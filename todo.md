@@ -71,8 +71,10 @@
 - [ ] Publish the callback before creating a managed recurring job, then verify the schedule can safely report its availability-data limitations when no live catalog token is configured.
 - [x] Update the home-page hero message to “Find what to watch, where to watch.”
 - [x] Research and document permitted, attributable sources for catalog recommendations, external ratings, critic coverage, and public review links without scraping protected review content.
-- [ ] Add deterministic recommendation pathways for genre, similar titles, post-watch selections, adaptations, and popular or well-rated catalog titles.
-- [ ] Add enriched title pages with verified legal offers, available catalog metadata, clearly sourced external-rating states, source-linked critic coverage, and related titles.
+- [x] Add deterministic recommendation pathways for genre, similar titles, post-watch selections, adaptations, and popular or well-rated catalog titles.
+- [x] Add enriched title pages with verified legal offers, available catalog metadata, clearly sourced external-rating states, source-linked critic coverage, and related titles.
+- [x] Surface permitted catalog metadata such as release date, genres, and runtime on the provider-first title page, with regression coverage.
+- [x] Replace the generic critic-search destination with permitted, clearly labelled source-specific critic-reading entries, while retaining candid unavailable states.
 - [x] Add authenticated member ratings and reviews with public visibility, report controls, and community aggregates that never fabricate reviews or ratings.
 - [x] Keep all external review and rating labels source-specific, timestamped where available, and explicitly unavailable when no permitted provider is configured.
 - [x] Add behavioral title-page coverage for source-specific outbound IMDb, Rotten Tomatoes, and critic labels in configured and no-catalog states.
@@ -98,7 +100,7 @@
 - [x] Add cross-surface provider-hierarchy and CatalogOfferPreview unavailable-state behavior coverage.
 - [ ] Verify the published scheduled callback accepts only its persisted cron identity and reports `catalogConfigured:false` safely when no catalog token is configured.
 - [x] Add a focused scheduled-refresh test for no-token, unknown-cron, and orphan-cron behavior before the final release checkpoint.
-- [ ] Restore the provider-first deterministic discovery surface with title, genre, similar, post-watch, adaptation, popular, and top-rated pathways.
+- [x] Restore the provider-first deterministic discovery surface with title, genre, similar, post-watch, adaptation, popular, and top-rated pathways.
 - [x] Restore a dedicated title page with country-specific legal provider offers first, permitted external rating and critic references, community rating and reviews, and related titles.
 - [x] Keep IMDb and Rotten Tomatoes as outbound-only references until an explicitly permitted licensed rating integration is configured; never scrape or reproduce their scores or review text.
 - [x] Restore consented private viewing signals, public community rating aggregates, and strict exclusion of public discussion from personal profiling and verified catalog evidence.

@@ -44,8 +44,10 @@ describe("keyboard and semantic-accessibility regression checks", () => {
     const page = source("client/src/pages/TitlePage.tsx");
     expect(page).toContain("IMDb reference");
     expect(page).toContain("Rotten Tomatoes reference");
-    expect(page).toContain("Critic and blog reading");
-    expect(page).toContain("does not reproduce their protected scores or review text");
+    expect(page).toContain("RogerEbert.com reading");
+    expect(page).toContain("Variety reading");
+    expect(page).toContain("The Guardian film reading");
+    expect(page).toContain("does not reproduce protected scores, review text, or publication metadata");
     expect(page).toContain("outbound-only references");
     expect(page).toContain("No score, review text, or rating timestamp is imported");
     expect(page).toContain("critic-reading links are unavailable until the catalog resolves this title");

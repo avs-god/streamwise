@@ -13,6 +13,9 @@ type LegalTitle = {
   offers: Array<{ id: number; name: string; type: keyof typeof offerLabels }>;
   checkedAt: string;
   providerPageUrl: string | null;
+  releaseDate: string | null;
+  runtime: number | null;
+  genres: string[];
 };
 
 export default function TitlePage() {
@@ -32,7 +35,7 @@ export default function TitlePage() {
   return <AppFrame><main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:py-14">
     <Link href="/" className="inline-flex items-center gap-1 text-sm font-semibold text-[#315c4b] underline underline-offset-4"><ArrowLeft className="size-4" />Back to discovery</Link>
     {!title || !result.data?.configured ? <section className="mt-7 rounded-3xl border border-[#d9cfb7] bg-[#fffaf0] p-7"><TitleStandbyNotice /><TitleCommunity titleId={id} titleName={`Catalog title ${id}`} mediaType={mediaType} /></section> : <section className="mt-7">
-      <p className="eyebrow">Provider-first title page</p><h1 className="serif mt-2 text-5xl text-[#214a3a]">{title.title}</h1><p className="mt-4 max-w-3xl leading-7 text-[#64766e]">{title.overview}</p>
+      <p className="eyebrow">Provider-first title page</p><h1 className="serif mt-2 text-5xl text-[#214a3a]">{title.title}</h1><TitleMetadata title={title} /><p className="mt-4 max-w-3xl leading-7 text-[#64766e]">{title.overview}</p>
       <LegalOfferPanel title={title} region={region} onSave={() => setSaveDialogOpen(true)} />
       <Link href={`/community?tmdbId=${title.id}&mediaType=${title.mediaType}&title=${encodeURIComponent(title.title)}`} className="mt-4 inline-flex items-center rounded-full border border-[#9eb6a4] bg-white px-4 py-2 text-sm font-semibold text-[#27543f] transition hover:bg-[#edf5ee]">Discuss this title with the community</Link>
       <ExternalReferencePanel encodedTitle={encodedTitle} />
@@ -48,8 +51,25 @@ export function TitleStandbyNotice() {
   return <><p className="eyebrow">Provider-first title page</p><h1 className="serif mt-2 text-4xl text-[#315343]">Legal catalog is safely on standby.</h1><p className="mt-3 text-sm leading-6 text-[#61756c]">Connect the server-side catalog credential to view country-specific legal offers, external rating references, and related titles. Streamwise will not invent any of these.</p><p className="mt-4 rounded-xl border border-[#ddd1b7] bg-white/65 p-3 text-sm leading-6 text-[#6b603f]">IMDb, Rotten Tomatoes, and critic-reading links are unavailable until the catalog resolves this title. Streamwise imports no external score, review text, or rating timestamp without a permitted licensed provider.</p></>;
 }
 
+export function TitleMetadata({ title }: { title: Pick<LegalTitle, "releaseDate" | "runtime" | "genres"> }) {
+  const details = [
+    title.releaseDate ? { label: "Released", value: new Date(`${title.releaseDate}T00:00:00Z`).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" }) } : null,
+    title.runtime ? { label: "Runtime", value: `${title.runtime} min` } : null,
+    title.genres.length ? { label: "Genres", value: title.genres.join(" · ") } : null,
+  ].filter((detail): detail is { label: string; value: string } => Boolean(detail));
+  if (!details.length) return null;
+  return <dl aria-label="Catalog title details" className="mt-4 flex flex-wrap gap-2">{details.map(detail => <div key={detail.label} className="rounded-full border border-[#d5ddd2] bg-[#f3f7f1] px-3 py-1.5 text-sm text-[#486557]"><dt className="sr-only">{detail.label}</dt><dd><span className="font-semibold">{detail.label}:</span> {detail.value}</dd></div>)}</dl>;
+}
+
 export function ExternalReferencePanel({ encodedTitle }: { encodedTitle: string }) {
-  return <section className="mt-8 rounded-2xl border border-[#d6d0c0] bg-[#fcfaf5] p-5"><p className="eyebrow">External ratings and critic reading</p><p className="mt-2 text-sm leading-6 text-[#64766e]">Open these sources directly for their current ratings or reviews. Streamwise does not reproduce their protected scores or review text without a permitted licence.</p><p className="mt-3 rounded-lg bg-[#f0eee6] px-3 py-2 text-xs leading-5 text-[#617168]">IMDb and Rotten Tomatoes status: outbound-only references. No score, review text, or rating timestamp is imported until a permitted licensed integration is configured.</p><div className="mt-3 flex flex-wrap gap-2"><a className="rounded-full border border-[#cbd7cd] px-3 py-1.5 text-sm font-semibold text-[#315c49] hover:bg-[#eef5ef]" href={`https://www.imdb.com/find/?q=${encodedTitle}`} target="_blank" rel="noreferrer">IMDb reference</a><a className="rounded-full border border-[#cbd7cd] px-3 py-1.5 text-sm font-semibold text-[#315c49] hover:bg-[#eef5ef]" href={`https://www.rottentomatoes.com/search?search=${encodedTitle}`} target="_blank" rel="noreferrer">Rotten Tomatoes reference</a><a className="rounded-full border border-[#cbd7cd] px-3 py-1.5 text-sm font-semibold text-[#315c49] hover:bg-[#eef5ef]" href={`https://www.google.com/search?q=${encodedTitle}%20critic%20reviews`} target="_blank" rel="noreferrer">Critic and blog reading</a></div></section>;
+  const sourceLinks = [
+    { label: "IMDb reference", href: `https://www.imdb.com/find/?q=${encodedTitle}` },
+    { label: "Rotten Tomatoes reference", href: `https://www.rottentomatoes.com/search?search=${encodedTitle}` },
+    { label: "RogerEbert.com reading", href: `https://www.rogerebert.com/search?query=${encodedTitle}` },
+    { label: "Variety reading", href: `https://variety.com/?s=${encodedTitle}` },
+    { label: "The Guardian film reading", href: `https://www.theguardian.com/film` },
+  ];
+  return <section className="mt-8 rounded-2xl border border-[#d6d0c0] bg-[#fcfaf5] p-5"><p className="eyebrow">External ratings and critic reading</p><p className="mt-2 text-sm leading-6 text-[#64766e]">Open named editorial sources directly for their current coverage. Streamwise does not reproduce protected scores, review text, or publication metadata without a permitted licence.</p><p className="mt-3 rounded-lg bg-[#f0eee6] px-3 py-2 text-xs leading-5 text-[#617168]">IMDb and Rotten Tomatoes status: outbound-only references. Critic-reading links are source-specific outbound searches or editorial destinations, not imported criticism. No score, review text, or rating timestamp is imported until a permitted licensed integration is configured.</p><div className="mt-3 flex flex-wrap gap-2">{sourceLinks.map(link => <a key={link.label} className="rounded-full border border-[#cbd7cd] px-3 py-1.5 text-sm font-semibold text-[#315c49] hover:bg-[#eef5ef]" href={link.href} target="_blank" rel="noreferrer">{link.label}</a>)}</div></section>;
 }
 
 function LegalOfferPanel({ title, region, onSave }: { title: LegalTitle; region: string; onSave: () => void }) {
