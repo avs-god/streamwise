@@ -8,7 +8,9 @@ test("keyboard users can navigate core routes and submit the labelled discovery 
   await expect(search).toBeFocused();
   await page.keyboard.type("A local title");
   await page.keyboard.press("Enter");
-  await expect(page.getByText("Search is safely on standby.")).toBeVisible();
+  await expect(page.getByText("Legal catalog is safely on standby.")).toBeVisible();
+  await expect(page.getByText("Unverified web context.")).toBeVisible();
+  await expect(page.locator('[aria-label="Verified legal catalog results"]')).toBeVisible();
 
   const country = page.getByLabel("Country");
   await country.focus();
@@ -17,6 +19,16 @@ test("keyboard users can navigate core routes and submit the labelled discovery 
   await expect(page.getByRole("option", { name: "United States" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(country).toBeFocused();
+
+  await expect(page.getByText("Separate evidence")).toBeVisible();
+
+  const whyStreamwise = page.getByRole("button", { name: "Why Streamwise exists" });
+  await whyStreamwise.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Finding a film should not require managing a maze." })).toBeVisible();
+  await expect(page.getByRole("img", { name: "User-provided newspaper article about streaming discovery and subscription frustration" })).toBeVisible();
+  await page.keyboard.press("Escape");
 
   const methodology = page.getByRole("button", { name: "How it works" });
   await methodology.focus();
@@ -52,4 +64,16 @@ test("keyboard users can navigate core routes and submit the labelled discovery 
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/updates$/);
   await expect(page.getByText("Keep updates private.")).toBeVisible();
+
+  const assistant = page.getByRole("link", { name: "Assistant", exact: true });
+  await assistant.focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/assistant$/);
+  await expect(page.getByRole("heading", { name: "Ask with your eyes open." })).toBeVisible();
+
+  const community = page.getByRole("link", { name: "Community", exact: true });
+  await community.focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/community$/);
+  await expect(page.getByRole("heading", { name: "What members are noticing." })).toBeVisible();
 });

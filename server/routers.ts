@@ -7,15 +7,19 @@ import {
   addSubscription,
   addWatchlistItem,
   applySubscriptionAction,
+  createCommunityPost,
   createAlert,
   getAlertPreferences,
   getAlerts,
+  getCommunityPosts,
+  getCommunityReports,
   getSnapshotHistory,
   getSubscriptionActions,
   getSubscriptions,
   getWatchlist,
   markAlertRead,
   markAllAlertsRead,
+  reportCommunityPost,
   removeSubscription,
   removeWatchlistItem,
   updateAlertPreferences,
@@ -23,14 +27,17 @@ import {
   updateWatchlistIntent,
   updateWatchlistMonitoring,
   updateWatchlistNote,
+  setCommunityPostStatus,
 } from "./db";
 import { getCatalogDetail, isCatalogConfigured, searchCatalog } from "./catalog";
 import { refreshTrackedTitle, refreshTrackedTitlesForUser } from "./trackingService";
 import { syncRenewalAlerts } from "./alertService";
+import { researchDiscoveryLead } from "./aiDiscovery";
+import { askPersonalAssistant } from "./personalAssistant";
 import { buildSubscriptionDecisions } from "./recommendations";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 
 const plannedFor = z.enum(["this_week", "this_month", "someday"]);
 const billingCycle = z.enum(["monthly", "quarterly", "yearly"]);
@@ -42,6 +49,12 @@ const subscriptionInput = z.object({
   billingCycle, renewalDate: z.coerce.date().nullable(), viewingIntent,
 });
 const snapshotOffer = z.object({ id: z.number().int().positive(), name: z.string().trim().min(1).max(150), type: z.enum(["stream", "ads", "free", "rent", "buy"]) });
+const communityKind = z.enum(["available", "ppv", "leaving_soon", "review", "recommendation"]);
+const communityPostInput = z.object({
+  title: z.string().trim().min(1).max(500), mediaType: z.enum(["movie", "tv", "unknown"]), region: z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/),
+  providerName: z.string().trim().min(1).max(150).nullable().optional(), kind: communityKind, body: z.string().trim().min(20).max(2000),
+  sourceUrl: z.string().url().max(1024).nullable().optional(), shareAttribution: z.boolean(),
+});
 
 export const appRouter = router({
   system: systemRouter,
@@ -54,7 +67,22 @@ export const appRouter = router({
     search: publicProcedure.input(z.object({ query: z.string().trim().min(2).max(120), language: z.string().default("en-US") })).query(({ input }) => searchCatalog(input)),
     title: publicProcedure.input(z.object({ id: z.number().int().positive(), mediaType: z.enum(["movie", "tv"]), region: z.string(), language: z.string().default("en-US") })).query(({ input }) => getCatalogDetail(input)),
   }),
+  ai: router({
+    research: protectedProcedure.input(z.object({ query: z.string().trim().min(3).max(220), region: z.string().regex(/^[A-Z]{2}$/), language: z.string().min(2).max(20) })).mutation(({ input }) => researchDiscoveryLead(input)),
+  }),
+  assistant: router({
+    ask: protectedProcedure.input(z.object({ question: z.string().trim().min(2).max(750) })).mutation(({ ctx, input }) => askPersonalAssistant(ctx.user.id, input.question)),
+  }),
   providers: router({ list: publicProcedure.query(() => providerGuides) }),
+  community: router({
+    list: publicProcedure.input(z.object({ region: z.string().regex(/^[A-Z]{2}$/).optional(), kind: communityKind.optional() }).optional()).query(({ input }) => getCommunityPosts(input ?? {})),
+    contribute: protectedProcedure.input(communityPostInput).mutation(async ({ ctx, input }) => { await createCommunityPost(ctx.user.id, { ...input, providerName: input.providerName ?? null, sourceUrl: input.sourceUrl ?? null }); return { success: true }; }),
+    report: protectedProcedure.input(z.object({ postId: z.number().int().positive(), reason: z.enum(["misleading", "spam", "abuse", "privacy", "other"]), detail: z.string().trim().max(500).nullable().optional() })).mutation(async ({ ctx, input }) => { await reportCommunityPost(ctx.user.id, input.postId, { reason: input.reason, detail: input.detail ?? null }); return { success: true }; }),
+    moderation: router({
+      reports: adminProcedure.query(() => getCommunityReports()),
+      setStatus: adminProcedure.input(z.object({ postId: z.number().int().positive(), status: z.enum(["visible", "hidden", "removed"]) })).mutation(async ({ input }) => { await setCommunityPostStatus(input.postId, input.status); return { success: true }; }),
+    }),
+  }),
   watchlist: router({
     list: protectedProcedure.query(({ ctx }) => getWatchlist(ctx.user.id)),
     add: protectedProcedure.input(z.object({

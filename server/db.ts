@@ -4,7 +4,10 @@ import {
   alertPreferences,
   alerts,
   availabilitySnapshots,
+  communityPosts,
+  communityReports,
   InsertUser,
+  scheduledJobs,
   subscriptionActions,
   subscriptions,
   users,
@@ -36,6 +39,24 @@ export async function getUserByOpenId(openId: string) {
   const db = await getDb();
   if (!db) return undefined;
   return (await db.select().from(users).where(eq(users.openId, openId)).limit(1))[0];
+}
+
+export async function getOptedInRefreshUserIds(limit = 100) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({ id: users.id }).from(users).innerJoin(alertPreferences, eq(alertPreferences.userId, users.id)).where(eq(alertPreferences.inAppEnabled, true)).limit(limit);
+}
+
+export async function getScheduledJobByTaskUid(taskUid: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return (await db.select().from(scheduledJobs).where(eq(scheduledJobs.scheduleCronTaskUid, taskUid)).limit(1))[0];
+}
+
+export async function upsertScheduledJob(jobKey: string, scheduleCronTaskUid: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable.");
+  await db.insert(scheduledJobs).values({ jobKey, scheduleCronTaskUid }).onDuplicateKeyUpdate({ set: { scheduleCronTaskUid } });
 }
 
 export async function getWatchlist(userId: number) {
@@ -174,4 +195,46 @@ export async function applySubscriptionAction(userId: number, subscriptionId: nu
   const patch = actionType === "paused" ? { status: "paused" as const, pauseUntil, cancellationRequestedAt: null, endedAt: null } : actionType === "resumed" ? { status: "active" as const, pauseUntil: null, cancellationRequestedAt: null, endedAt: null } : actionType === "cancellation_planned" ? { status: "cancellation_planned" as const, pauseUntil: null, cancellationRequestedAt: now, endedAt: null } : { status: "cancelled" as const, pauseUntil: null, cancellationRequestedAt: subscription.cancellationRequestedAt ?? now, endedAt: now };
   await db.update(subscriptions).set(patch).where(and(eq(subscriptions.id, subscriptionId), eq(subscriptions.userId, userId)));
   await db.insert(subscriptionActions).values({ userId, subscriptionId, actionType, note });
+}
+
+export type CommunityPostInput = {
+  title: string;
+  mediaType: "movie" | "tv" | "unknown";
+  region: string;
+  providerName: string | null;
+  kind: "available" | "ppv" | "leaving_soon" | "review" | "recommendation";
+  body: string;
+  sourceUrl: string | null;
+  shareAttribution: boolean;
+};
+
+export async function createCommunityPost(userId: number, input: CommunityPostInput) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  await db.insert(communityPosts).values({ userId, ...input });
+}
+
+export async function getCommunityPosts(input: { region?: string; kind?: CommunityPostInput["kind"] }) {
+  const db = await getDb(); if (!db) return [];
+  const conditions = [eq(communityPosts.status, "visible")];
+  if (input.region) conditions.push(eq(communityPosts.region, input.region));
+  if (input.kind) conditions.push(eq(communityPosts.kind, input.kind));
+  const rows = await db.select({ post: communityPosts, contributorName: users.name }).from(communityPosts).leftJoin(users, eq(communityPosts.userId, users.id)).where(and(...conditions)).orderBy(desc(communityPosts.createdAt)).limit(80);
+  return rows.map(({ post, contributorName }) => ({ ...post, contributorName: post.shareAttribution ? contributorName ?? "Streamwise member" : null }));
+}
+
+export async function reportCommunityPost(userId: number, postId: number, input: { reason: "misleading" | "spam" | "abuse" | "privacy" | "other"; detail: string | null }) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  const post = (await db.select({ id: communityPosts.id }).from(communityPosts).where(eq(communityPosts.id, postId)).limit(1))[0];
+  if (!post) throw new Error("Contribution not found.");
+  await db.insert(communityReports).values({ postId, reporterUserId: userId, ...input }).onDuplicateKeyUpdate({ set: { reason: input.reason, detail: input.detail, status: "open" } });
+}
+
+export async function getCommunityReports() {
+  const db = await getDb(); if (!db) return [];
+  return db.select().from(communityReports).where(eq(communityReports.status, "open")).orderBy(desc(communityReports.createdAt)).limit(100);
+}
+
+export async function setCommunityPostStatus(postId: number, status: "visible" | "hidden" | "removed") {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  await db.update(communityPosts).set({ status }).where(eq(communityPosts.id, postId));
 }

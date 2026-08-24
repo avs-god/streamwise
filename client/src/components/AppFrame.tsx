@@ -2,7 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ArrowUpRight, BellRing, Bookmark, Compass, LayoutList, LogOut, WalletCards } from "lucide-react";
+import { ArrowUpRight, BellRing, Bookmark, Bot, Compass, LayoutList, LogOut, MessagesSquare, WalletCards } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 const nav = [
@@ -11,6 +11,8 @@ const nav = [
   { href: "/wallet", label: "Wallet", icon: WalletCards },
   { href: "/decisions", label: "Decisions", icon: LayoutList },
   { href: "/updates", label: "Updates", icon: BellRing },
+  { href: "/assistant", label: "Assistant", icon: Bot },
+  { href: "/community", label: "Community", icon: MessagesSquare },
 ];
 
 export default function AppFrame({ children }: { children: React.ReactNode }) {
@@ -45,11 +47,11 @@ export default function AppFrame({ children }: { children: React.ReactNode }) {
             )}
           </div>
         </div>
-        <nav aria-label="Mobile primary" className="flex border-t border-[#e3ddcf] px-3 md:hidden">
+        <nav aria-label="Mobile primary" className="flex gap-1 overflow-x-auto border-t border-[#e3ddcf] px-3 py-1.5 [scrollbar-width:none] md:hidden">
           {nav.map(item => {
             const active = location === item.href;
             const Icon = item.icon;
-            return <Link key={item.href} href={item.href} className={cn("flex flex-1 flex-col items-center gap-1 py-2 text-[0.65rem] font-semibold", active ? "text-[#1e4a3a]" : "text-[#72847d]")}><Icon className="size-4" />{item.label}</Link>;
+            return <Link key={item.href} href={item.href} className={cn("flex min-w-[4.25rem] shrink-0 flex-col items-center gap-1 rounded-lg px-1 py-1.5 text-[0.62rem] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", active ? "bg-[#e7dfc8] text-[#1e4a3a]" : "text-[#72847d]")}><Icon className="size-4" />{item.label}</Link>;
           })}
         </nav>
       </header>

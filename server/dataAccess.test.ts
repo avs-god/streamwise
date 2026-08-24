@@ -9,6 +9,9 @@ const mockedDb = vi.hoisted(() => ({
   getAlertPreferences: vi.fn(async () => ({ availabilityChangesEnabled: false, renewalRemindersEnabled: false, pauseRemindersEnabled: false, renewalLeadDays: 7, inAppEnabled: false })),
   applySubscriptionAction: vi.fn(async () => undefined),
   createAlert: vi.fn(async () => undefined),
+  createCommunityPost: vi.fn(async () => undefined),
+  reportCommunityPost: vi.fn(async () => undefined),
+  getCommunityPosts: vi.fn(async () => []),
 }));
 
 vi.mock("./db", () => ({
@@ -17,8 +20,11 @@ vi.mock("./db", () => ({
   addWatchlistItem: vi.fn(),
   applySubscriptionAction: mockedDb.applySubscriptionAction,
   createAlert: mockedDb.createAlert,
+  createCommunityPost: mockedDb.createCommunityPost,
   getAlertPreferences: mockedDb.getAlertPreferences,
   getAlerts: vi.fn(async () => []),
+  getCommunityPosts: mockedDb.getCommunityPosts,
+  getCommunityReports: vi.fn(async () => []),
   getSnapshotHistory: vi.fn(async () => []),
   getSubscriptionActions: vi.fn(async () => []),
   getSubscriptions: mockedDb.getSubscriptions,
@@ -27,6 +33,8 @@ vi.mock("./db", () => ({
   markAllAlertsRead: vi.fn(),
   removeSubscription: vi.fn(),
   removeWatchlistItem: vi.fn(),
+  reportCommunityPost: mockedDb.reportCommunityPost,
+  setCommunityPostStatus: vi.fn(),
   updateAlertPreferences: mockedDb.updateAlertPreferences,
   updateSubscription: vi.fn(),
   updateWatchlistIntent: vi.fn(),
@@ -88,5 +96,16 @@ describe("private profile data access", () => {
     expect(mockedDb.updateAlertPreferences).toHaveBeenCalledWith(19, preferences);
     expect(mockedDb.applySubscriptionAction).toHaveBeenCalledWith(19, 22, "paused", null, null);
     expect(mockedDb.createAlert).not.toHaveBeenCalled();
+  });
+
+  it("writes community contributions and moderation reports under the authenticated user", async () => {
+    const caller = appRouter.createCaller(contextFor(7));
+    const post = { title: "Example Film", mediaType: "movie" as const, region: "IN", providerName: "Example Provider", kind: "review" as const, body: "A careful member review with enough context.", sourceUrl: "https://example.com/source", shareAttribution: false };
+
+    await caller.community.contribute(post);
+    await caller.community.report({ postId: 12, reason: "misleading", detail: "Needs a source check." });
+
+    expect(mockedDb.createCommunityPost).toHaveBeenCalledWith(7, post);
+    expect(mockedDb.reportCommunityPost).toHaveBeenCalledWith(7, 12, { reason: "misleading", detail: "Needs a source check." });
   });
 });

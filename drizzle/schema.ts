@@ -107,5 +107,47 @@ export const subscriptionActions = mysqlTable(
   table => [index("subscription_actions_user_subscription_idx").on(table.userId, table.subscriptionId, table.actionAt)],
 );
 
+export const communityPosts = mysqlTable(
+  "communityPosts",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    title: varchar("title", { length: 500 }).notNull(),
+    mediaType: mysqlEnum("mediaType", ["movie", "tv", "unknown"]).default("unknown").notNull(),
+    region: varchar("region", { length: 2 }).notNull(),
+    providerName: varchar("providerName", { length: 150 }),
+    kind: mysqlEnum("kind", ["available", "ppv", "leaving_soon", "review", "recommendation"]).notNull(),
+    body: text("body").notNull(),
+    sourceUrl: varchar("sourceUrl", { length: 1024 }),
+    shareAttribution: boolean("shareAttribution").default(false).notNull(),
+    status: mysqlEnum("status", ["visible", "hidden", "removed"]).default("visible").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [index("community_posts_visible_created_idx").on(table.status, table.createdAt), index("community_posts_region_kind_idx").on(table.region, table.kind)],
+);
+
+export const communityReports = mysqlTable(
+  "communityReports",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    postId: int("postId").notNull(),
+    reporterUserId: int("reporterUserId").notNull(),
+    reason: mysqlEnum("reason", ["misleading", "spam", "abuse", "privacy", "other"]).notNull(),
+    detail: varchar("detail", { length: 500 }),
+    status: mysqlEnum("status", ["open", "resolved", "dismissed"]).default("open").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => [uniqueIndex("community_report_reporter_post_unique").on(table.reporterUserId, table.postId), index("community_reports_post_status_idx").on(table.postId, table.status)],
+);
+
+export const scheduledJobs = mysqlTable("scheduledJobs", {
+  id: int("id").autoincrement().primaryKey(),
+  jobKey: varchar("jobKey", { length: 80 }).notNull().unique(),
+  scheduleCronTaskUid: varchar("scheduleCronTaskUid", { length: 65 }).notNull().unique(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;

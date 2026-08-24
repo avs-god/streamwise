@@ -1,0 +1,18 @@
+import { useAuth } from "@/_core/hooks/useAuth";
+import AppFrame from "@/components/AppFrame";
+import { AIChatBox, type Message } from "@/components/AIChatBox";
+import { PrivacyNote } from "@/components/ConnectionNotice";
+import { trpc } from "@/lib/trpc";
+import { BrainCircuit, CircleUserRound, ShieldCheck } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+
+export default function Assistant() {
+  const { user, loading } = useAuth();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [latestMeta, setLatestMeta] = useState<{ usedInputs: string[]; limitation: string } | null>(null);
+  const ask = trpc.assistant.ask.useMutation({ onSuccess: reply => { setMessages(current => [...current, { role: "assistant", content: reply.answer }]); setLatestMeta({ usedInputs: reply.usedInputs, limitation: reply.limitation }); }, onError: error => { toast.error(error.message); setMessages(current => current.slice(0, -1)); } });
+  function send(content: string) { setMessages(current => [...current, { role: "user", content }]); ask.mutate({ question: content }); }
+
+  return <AppFrame><main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:py-14"><div className="grid gap-6 lg:grid-cols-[.8fr_1.2fr]"><section><p className="eyebrow">Private planning assistant</p><h1 className="serif mt-2 text-4xl tracking-[-0.045em] text-[#214a3a] sm:text-5xl">Ask with your eyes open.</h1><p className="mt-3 max-w-xl leading-7 text-[#63756e]">Get concise planning help from the titles, subscription records, dates, statuses, and preferences you have explicitly saved to Streamwise.</p><div className="mt-6 rounded-2xl border border-[#c9d8ca] bg-[#edf4ec] p-5"><div className="flex items-center gap-2 text-sm font-bold text-[#2d624b]"><ShieldCheck className="size-4" />What this assistant can use</div><p className="mt-2 text-sm leading-6 text-[#577269]">Your wallet plans and dates, saved-title viewing intent and snapshots, reminder preferences, and the question you submit. It does not use bank activity, viewing history, community posts, emails, or anything outside Streamwise.</p></div>{latestMeta && <div className="mt-4 rounded-2xl border border-[#ded5be] bg-[#fffaf0] p-4"><p className="text-xs font-bold uppercase tracking-[0.08em] text-[#765f32]">Inputs used in the last reply</p><ul className="mt-2 space-y-1 text-sm text-[#62593f]">{latestMeta.usedInputs.map(input => <li key={input}>• {input}</li>)}</ul><p className="mt-3 text-xs leading-5 text-[#756747]">{latestMeta.limitation}</p></div>}</section><section>{!loading && !user ? <div className="grid min-h-[31rem] place-items-center rounded-3xl border border-dashed border-[#c9c0ae] bg-[#faf8f1]/70 p-9 text-center"><div><CircleUserRound className="mx-auto size-9 text-[#6b8479]" /><h2 className="serif mt-4 text-2xl text-[#315343]">Your context stays private.</h2><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#65776f]">Sign in to ask questions using only the Streamwise records in your own profile.</p></div></div> : <AIChatBox messages={messages} onSendMessage={send} isLoading={ask.isPending} height="34rem" className="border-[#d8d0c0] bg-[#fcfaf4]" placeholder="For example: What should I review before my next renewal?" emptyStateMessage="Ask about your saved titles, wallet, renewal dates, or reminder plan." suggestedPrompts={["What is my next subscription action?", "Which saved titles are planned soon?", "Explain my reminder choices."]} />}</section></div><div className="mt-8"><PrivacyNote /></div></main></AppFrame>;
+}

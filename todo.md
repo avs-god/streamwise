@@ -27,3 +27,49 @@
 - [x] Verify the expanded discovery, tracking, and management experience across desktop, mobile, and keyboard workflows.
 - [x] Add opt-in pause-review reminders with user-entered follow-up dates and private in-app delivery.
 - [x] Verify the title dialog’s save-with-tracking flow and signed-in tracking, alert, and pause-reminder states with browser-driven tests or authenticated visual checks.
+- [x] Research public and licensed source options for title availability, platform changes, and leaving-soon reports without scraping private accounts or personal data.
+- [x] Add a server-side AI discovery service that produces structured, source-linked guidance and never converts an unverified lead into an availability fact.
+- [x] Add an AI-assisted discovery interface that distinguishes verified legal offers, public-web leads, source dates, and limitations.
+- [x] Add source-provenance controls and public-discussion safety boundaries for Reddit, X, Instagram, blogs, and search-result leads.
+- [x] Add automated tests for AI response validation, provenance labels, and no-unverified-fact boundaries.
+- [x] Verify AI-assisted search, loading and error states, keyboard access, responsive layouts, and production build.
+- [x] Enforce a strict schema for AI research output and reject or sanitize language that asserts unverified availability, leaving-soon dates, or platform-transfer facts.
+- [ ] Add UI and failure-path tests for AI provenance labels, limitations, malformed responses, loading, and insufficient-evidence states.
+- [ ] Exercise successful, loading, and failure-path AI research states through browser-driven verification without using real consumer data.
+- [x] Include public social and community discussion sources by default as a separately labeled, unverified result group with source links and no copied personal content.
+- [x] Preserve a hard boundary that public discussion cannot change legal availability, leaving-soon, platform-transfer, tracking, alert, or subscription-decision facts.
+- [x] Add provenance and privacy tests for community-result labeling, social source links, and exclusion from verified catalog evidence.
+- [x] Add authenticated community contributions for reported availability, pay-per-view offers, leaving-soon leads, title reviews, and recommendations.
+- [x] Add report/flag workflows, moderation statuses, contributor-consent fields, and public visibility controls without fabricating user reviews or observations.
+- [x] Keep every community contribution explicitly unverified and permanently excluded from verified catalog availability, alerts, tracking, and subscription-decision logic.
+- [x] Build accessible community browsing, filtering, contribution, and report experiences with clear data/provenance limitations.
+- [ ] Add tests for community data isolation, moderation/reporting controls, contribution validation, and fact-separation rules.
+- [ ] Verify community and AI workflows across loading, error, signed-in, responsive, keyboard, type, test, and production build states.
+- [x] Add typo-tolerant title interpretation so common misspellings resolve to likely catalog titles before research leads are shown.
+- [x] Present verified, country-specific provider, rental, purchase, and ad-supported offer results prominently for a resolved title, with source and retrieval timestamp.
+- [x] Add tests for typo correction, title selection, and the separation between verified offer results and AI/public-web context.
+- [x] Replace separate discovery inputs with one accessible submit action that runs eligible legal-catalog and AI public-web searches in parallel.
+- [x] Present verified country-specific legal offers and unverified AI/public-community context in adjacent, clearly labeled result compartments with independent loading and error states.
+- [x] Add keyboard and regression tests for unified parallel discovery, including signed-out AI behavior and catalog-standby states.
+- [x] Add a subscription planning timeline with upcoming renewals, pause reviews, cancellation plans, and concise next-best actions.
+- [x] Add configurable in-app reminder preferences and a clear reminder schedule preview based only on user-entered subscription dates and consent.
+- [x] Expand community browsing with filters, contribution guidance, review/recommendation and title-observation flows, contributor consent, source links, and report actions.
+- [x] Add a privacy-scoped assistant/chatbot that uses only a signed-in member’s explicit question and saved Streamwise data, explains its inputs, and does not invent catalog facts.
+- [x] Add an accessible home-page article popup explaining the original consumer problem, the product’s response, and the source/data limitations.
+- [ ] Verify all original problem themes—title discovery, platform churn, leaving-soon uncertainty, subscription sprawl, cancellation friction, and legal alternatives—are addressed in the working product.
+- [ ] Complete type, unit, integration, browser, responsive, accessibility, and production-build validation for all new workflows.
+- [x] Refine the expanded mobile navigation so each destination remains legible and keyboard reachable without compressed labels.
+- [x] Add an idempotent, cron-authenticated project refresh endpoint that processes opt-in renewal reminders and observed availability checks without using in-process timers.
+- [ ] Publish the callback before creating a managed recurring job, then verify the schedule can safely report its availability-data limitations when no live catalog token is configured.
+- [x] Update the home-page hero message to “Find what to watch, where to watch.”
+- [ ] Research and document permitted, attributable sources for catalog recommendations, external ratings, critic coverage, and public review links without scraping protected review content.
+- [ ] Add deterministic recommendation pathways for genre, similar titles, post-watch selections, adaptations, and popular or well-rated catalog titles.
+- [ ] Add enriched title pages with verified legal offers, available catalog metadata, clearly sourced external-rating states, source-linked critic coverage, and related titles.
+- [ ] Add authenticated member ratings and reviews with public visibility, report controls, and community aggregates that never fabricate reviews or ratings.
+- [ ] Keep all external review and rating labels source-specific, timestamped where available, and explicitly unavailable when no permitted provider is configured.
+- [ ] Add automated tests for deterministic recommendation inputs, rating aggregation, review validation, fact separation, and accessible title-detail workflows.
+- [ ] Validate search, recommendation, title-detail, rating, review, responsive, keyboard, type, test, and production-build flows.
+- [ ] Add a member-controlled Streamwise viewing-history signal with explicit consent, clear scope, and a private-by-default state for deterministic recommendations and the personal assistant.
+- [ ] Add a unified-intelligence explanation that distinguishes a member’s consented signals, public community aggregates, and public unverified discussion without profiling private community activity.
+- [ ] Make verified country-specific “Where to stream” provider names and offer types the visually primary field on every catalog-backed search, recommendation, and title card.
+- [ ] Add source-boundary and accessibility tests for consented viewing signals, aggregate-only community context, and prominent provider availability states.

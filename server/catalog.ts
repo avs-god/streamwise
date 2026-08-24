@@ -1,3 +1,5 @@
+import { invokeLLM, listLLMModels } from "./_core/llm";
+
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 
 export type OfferType = "stream" | "ads" | "free" | "rent" | "buy";
@@ -63,12 +65,36 @@ function cleanRegion(region: string) {
   return /^[A-Z]{2}$/.test(region) ? region : "US";
 }
 
+export function parseTitleSuggestion(content: unknown, originalQuery: string): string | null {
+  try {
+    if (typeof content !== "string") return null;
+    const parsed = JSON.parse(content) as { query?: unknown };
+    const suggestion = typeof parsed.query === "string" ? parsed.query.trim().replace(/\s+/g, " ") : "";
+    if (!suggestion || suggestion.length < 2 || suggestion.length > 120 || suggestion.toLocaleLowerCase() === originalQuery.trim().toLocaleLowerCase()) return null;
+    return suggestion;
+  } catch { return null; }
+}
+
+async function suggestTitleQuery(query: string) {
+  try {
+    const models = await listLLMModels();
+    const model = models.data.find(item => item.id === "gpt-5-mini")?.id;
+    if (!model) return null;
+    const response = await invokeLLM({
+      model, maxCompletionTokens: 80,
+      messages: [{ role: "system", content: "Correct a likely movie or television title spelling only. Do not identify availability, release year, or any streaming service. If uncertain, return the original query. Output JSON only." }, { role: "user", content: query }],
+      outputSchema: { name: "title_query", strict: true, schema: { type: "object", properties: { query: { type: "string", minLength: 2, maxLength: 120 } }, required: ["query"], additionalProperties: false } },
+    });
+    return parseTitleSuggestion(response.choices[0]?.message.content, query);
+  } catch { return null; }
+}
+
 export async function searchCatalog(input: {
   query: string;
   language: string;
-}): Promise<{ configured: boolean; titles: CatalogTitle[]; checkedAt: string | null }> {
+}): Promise<{ configured: boolean; titles: CatalogTitle[]; checkedAt: string | null; correctedQuery: string | null }> {
   if (!isCatalogConfigured()) {
-    return { configured: false, titles: [], checkedAt: null };
+    return { configured: false, titles: [], checkedAt: null, correctedQuery: null };
   }
 
   type Result = {
@@ -83,11 +109,7 @@ export async function searchCatalog(input: {
     release_date?: string;
     first_air_date?: string;
   };
-  const data = await tmdbFetch<{ results: Result[] }>(
-    `/search/multi?query=${encodeURIComponent(input.query)}&include_adult=false&language=${encodeURIComponent(cleanLanguage(input.language))}&page=1`,
-  );
-
-  const titles = data.results
+  const mapResults = (results: Result[]) => results
     .filter(item => item.media_type === "movie" || item.media_type === "tv")
     .slice(0, 12)
     .map(item => ({
@@ -99,8 +121,18 @@ export async function searchCatalog(input: {
       posterPath: item.poster_path ?? null,
       releaseDate: item.release_date ?? item.first_air_date ?? null,
     }));
+  const runSearch = async (query: string) => mapResults((await tmdbFetch<{ results: Result[] }>(`/search/multi?query=${encodeURIComponent(query)}&include_adult=false&language=${encodeURIComponent(cleanLanguage(input.language))}&page=1`)).results);
+  let titles = await runSearch(input.query);
+  let correctedQuery: string | null = null;
+  if (!titles.length) {
+    const suggestion = await suggestTitleQuery(input.query);
+    if (suggestion) {
+      const corrected = await runSearch(suggestion);
+      if (corrected.length) { titles = corrected; correctedQuery = suggestion; }
+    }
+  }
 
-  return { configured: true, titles, checkedAt: new Date().toISOString() };
+  return { configured: true, titles, checkedAt: new Date().toISOString(), correctedQuery };
 }
 
 export async function getCatalogDetail(input: {
