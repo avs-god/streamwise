@@ -35,6 +35,23 @@ export const watchlistItems = mysqlTable(
   table => [uniqueIndex("watchlist_user_title_unique").on(table.userId, table.tmdbId, table.mediaType), index("watchlist_monitor_idx").on(table.monitorAvailability)],
 );
 
+/** A member actively records this signal; Streamwise never infers it from viewing, finance, or community activity. */
+export const viewingSignals = mysqlTable(
+  "viewingSignals",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    tmdbId: int("tmdbId").notNull(),
+    mediaType: mysqlEnum("mediaType", ["movie", "tv"]).notNull(),
+    title: varchar("title", { length: 500 }).notNull(),
+    status: mysqlEnum("status", ["watched"]).default("watched").notNull(),
+    recordedAt: timestamp("recordedAt").defaultNow().notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [uniqueIndex("viewing_signal_member_title_unique").on(table.userId, table.tmdbId, table.mediaType), index("viewing_signal_member_recorded_idx").on(table.userId, table.recordedAt)],
+);
+
 export const availabilitySnapshots = mysqlTable(
   "availabilitySnapshots",
   {

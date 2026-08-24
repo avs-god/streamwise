@@ -241,3 +241,18 @@ export async function getSimilarCatalogTitles(input: { id: number; mediaType: "m
   const data = await tmdbFetch<{ results?: Result[] }>(`/${input.mediaType}/${input.id}/similar?language=${encodeURIComponent(cleanLanguage(input.language))}&page=1`);
   return { configured: true, titles: (data.results ?? []).slice(0, 8).map(item => ({ id: item.id, mediaType: input.mediaType, title: item.title ?? item.name ?? "Untitled", originalTitle: item.original_title ?? item.original_name ?? null, overview: item.overview ?? null, posterPath: item.poster_path ?? null, releaseDate: item.release_date ?? item.first_air_date ?? null })) };
 }
+
+/** Catalog-related picks from TMDb's official title recommendations endpoint; never inferred from community activity. */
+export async function getRecommendedCatalogTitles(input: { id: number; mediaType: "movie" | "tv"; language: string }): Promise<{ configured: boolean; titles: CatalogTitle[] }> {
+  if (!isCatalogConfigured()) return { configured: false, titles: [] };
+  type Result = { id: number; title?: string; name?: string; original_title?: string; original_name?: string; overview?: string; poster_path?: string | null; release_date?: string; first_air_date?: string };
+  const data = await tmdbFetch<{ results?: Result[] }>(`/${input.mediaType}/${input.id}/recommendations?language=${encodeURIComponent(cleanLanguage(input.language))}&page=1`);
+  return { configured: true, titles: (data.results ?? []).slice(0, 8).map(item => ({ id: item.id, mediaType: input.mediaType, title: item.title ?? item.name ?? "Untitled", originalTitle: item.original_title ?? item.original_name ?? null, overview: item.overview ?? null, posterPath: item.poster_path ?? null, releaseDate: item.release_date ?? item.first_air_date ?? null })) };
+}
+
+/** Stable post-watch merge: signal order determines priority; already-recorded titles and duplicates are excluded. */
+export function mergePostWatchRecommendations(sources: Array<{ sourceId: number; titles: CatalogTitle[] }>, excludedIds: number[]) {
+  const excluded = new Set(excludedIds);
+  const seen = new Set<number>();
+  return sources.flatMap(source => source.titles.filter(title => !excluded.has(title.id) && !seen.has(title.id) && (seen.add(title.id), true))).slice(0, 16);
+}

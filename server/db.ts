@@ -15,6 +15,7 @@ import {
   subscriptionActions,
   subscriptions,
   users,
+  viewingSignals,
   watchlistItems,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -226,6 +227,25 @@ export function toPublicCommunityItem<T extends { userId: number; shareAttributi
 export async function createCommunityPost(userId: number, input: CommunityPostInput) {
   const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
   await db.insert(communityPosts).values({ userId, ...input });
+}
+
+export type ViewingSignalInput = { tmdbId: number; mediaType: "movie" | "tv"; title: string };
+
+/** A signal exists only when its owner actively records it. It is never inferred from community or provider data. */
+export async function recordViewingSignal(userId: number, input: ViewingSignalInput) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  const recordedAt = new Date();
+  await db.insert(viewingSignals).values({ userId, ...input, status: "watched", recordedAt }).onDuplicateKeyUpdate({ set: { title: input.title, status: "watched", recordedAt } });
+}
+
+export async function getViewingSignals(userId: number) {
+  const db = await getDb(); if (!db) return [];
+  return db.select().from(viewingSignals).where(eq(viewingSignals.userId, userId)).orderBy(desc(viewingSignals.recordedAt)).limit(100);
+}
+
+export async function removeViewingSignal(userId: number, id: number) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  await db.delete(viewingSignals).where(and(eq(viewingSignals.id, id), eq(viewingSignals.userId, userId)));
 }
 
 export async function getCommunityPosts(input: { region?: string; kind?: CommunityPostInput["kind"] }) {

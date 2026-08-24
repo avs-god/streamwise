@@ -70,4 +70,48 @@ describe("keyboard and semantic-accessibility regression checks", () => {
     expect(panel).toContain("Insufficient source evidence");
     expect(panel).toContain("Separate evidence");
   });
+
+  it("keeps title-linked thread context and one-time signed-in composer behavior", () => {
+    const community = source("client/src/pages/Community.tsx");
+    expect(community).toContain('params.get("tmdbId")');
+    expect(community).toContain("titleLinkHandled.current");
+    expect(community).toContain("Catalog-linked discussion for");
+    expect(community).toContain("The title ID is retained when this thread is published.");
+  });
+
+  it("keeps title-page legal offers provider-first and post-watch picks catalog-derived", () => {
+    const page = source("client/src/pages/TitlePage.tsx");
+    expect(page).toContain("Verified legal offers in");
+    expect(page).toContain("Where to stream");
+    expect(page.indexOf("<LegalOfferPanel")).toBeLessThan(page.indexOf("External ratings and critic reading"));
+    expect(page).toContain("catalog.recommended.useQuery");
+    expect(page).toContain("After this title");
+    expect(page).toContain("Catalog-derived related titles");
+    expect(page).toContain("Discuss this title with the community");
+    expect(page).toContain("tmdbId=${title.id}");
+  });
+
+  it("keeps watched signals explicit, private, removable, and separately disclosed to the assistant", () => {
+    const watchlist = source("client/src/pages/Watchlist.tsx");
+    const assistant = source("client/src/pages/Assistant.tsx");
+    expect(watchlist).toContain("Private viewing signal");
+    expect(watchlist).toContain("Record as watched");
+    expect(watchlist).toContain("Remove record");
+    expect(watchlist).toContain("Loading your private watched-record status");
+    expect(watchlist).toContain("Private watched-record status could not be loaded.");
+    expect(watchlist).toContain("never inferred from activity or shared publicly");
+    expect(watchlist).toContain("trpc.viewingSignals");
+    expect(assistant).toContain("titles you explicitly record as watched");
+    expect(assistant).toContain("does not infer viewing history");
+  });
+
+  it("keeps private post-watch picks consent-scoped and separate from public catalog discovery", () => {
+    const recommendations = source("client/src/pages/Recommendations.tsx");
+    expect(recommendations).toContain("Private post-watch picks");
+    expect(recommendations).toContain("Only from titles you recorded.");
+    expect(recommendations).toContain("trpc.viewingSignals.postWatchPicks");
+    expect(recommendations).toContain("never inferred from activity or public discussion");
+    expect(recommendations).toContain("Private post-watch picks could not be loaded.");
+    expect(recommendations).toContain("No private post-watch picks are available yet.");
+  });
 });

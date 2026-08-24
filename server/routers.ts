@@ -23,13 +23,16 @@ import {
   getSnapshotHistory,
   getSubscriptionActions,
   getSubscriptions,
+  getViewingSignals,
   getWatchlist,
   markAlertRead,
   markAllAlertsRead,
   reportCommunityPost,
   reportCommunityThread,
   removeSubscription,
+  removeViewingSignal,
   removeWatchlistItem,
+  recordViewingSignal,
   updateAlertPreferences,
   updateSubscription,
   updateWatchlistIntent,
@@ -39,7 +42,7 @@ import {
   setCommunityTitleRating,
   setCommunityThreadStatus,
 } from "./db";
-import { discoverCatalog, getCatalogDetail, getSimilarCatalogTitles, isCatalogConfigured, searchCatalog } from "./catalog";
+import { discoverCatalog, getCatalogDetail, getRecommendedCatalogTitles, getSimilarCatalogTitles, isCatalogConfigured, mergePostWatchRecommendations, searchCatalog } from "./catalog";
 import { refreshTrackedTitle, refreshTrackedTitlesForUser } from "./trackingService";
 import { syncRenewalAlerts } from "./alertService";
 import { researchDiscoveryLead } from "./aiDiscovery";
@@ -81,6 +84,7 @@ export const appRouter = router({
     title: publicProcedure.input(z.object({ id: z.number().int().positive(), mediaType: z.enum(["movie", "tv"]), region: z.string(), language: z.string().default("en-US") })).query(({ input }) => getCatalogDetail(input)),
     discover: publicProcedure.input(z.object({ mode: z.enum(["popular", "top_rated", "genre"]), mediaType: z.enum(["movie", "tv", "all"]).default("all"), region: z.string().regex(/^[A-Z]{2}$/), language: z.string().default("en-US"), genreId: z.number().int().positive().optional() })).query(({ input }) => discoverCatalog(input)),
     similar: publicProcedure.input(z.object({ id: z.number().int().positive(), mediaType: z.enum(["movie", "tv"]), language: z.string().default("en-US") })).query(({ input }) => getSimilarCatalogTitles(input)),
+    recommended: publicProcedure.input(z.object({ id: z.number().int().positive(), mediaType: z.enum(["movie", "tv"]), language: z.string().default("en-US") })).query(({ input }) => getRecommendedCatalogTitles(input)),
   }),
   ai: router({
     research: protectedProcedure.input(z.object({ query: z.string().trim().min(3).max(220), region: z.string().regex(/^[A-Z]{2}$/), language: z.string().min(2).max(20) })).mutation(({ input }) => researchDiscoveryLead(input)),
@@ -106,6 +110,18 @@ export const appRouter = router({
       threadReports: adminProcedure.query(() => getCommunityThreadReports()),
       setStatus: adminProcedure.input(z.object({ postId: z.number().int().positive(), status: z.enum(["visible", "hidden", "removed"]) })).mutation(async ({ input }) => { await setCommunityPostStatus(input.postId, input.status); return { success: true }; }),
       setThreadStatus: adminProcedure.input(z.object({ threadId: z.number().int().positive(), status: z.enum(["visible", "hidden", "removed"]) })).mutation(async ({ input }) => { await setCommunityThreadStatus(input.threadId, input.status); return { success: true }; }),
+    }),
+  }),
+  viewingSignals: router({
+    list: protectedProcedure.query(({ ctx }) => getViewingSignals(ctx.user.id)),
+    record: protectedProcedure.input(z.object({ tmdbId: z.number().int().positive(), mediaType: z.enum(["movie", "tv"]), title: z.string().trim().min(1).max(500) })).mutation(async ({ ctx, input }) => { await recordViewingSignal(ctx.user.id, input); return { success: true }; }),
+    remove: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => { await removeViewingSignal(ctx.user.id, input.id); return { success: true }; }),
+    postWatchPicks: protectedProcedure.input(z.object({ language: z.string().default("en-US") })).query(async ({ ctx, input }) => {
+      const signals = await getViewingSignals(ctx.user.id);
+      if (!isCatalogConfigured()) return { configured: false, titles: [], recordedCount: signals.length, explanation: "Live catalog recommendations are not configured, so Streamwise will not invent post-watch picks." };
+      if (!signals.length) return { configured: true, titles: [], recordedCount: 0, explanation: "Record titles you watched if you want private post-watch picks. Streamwise does not infer viewing history." };
+      const sources = await Promise.all(signals.slice(0, 8).map(async signal => ({ sourceId: signal.tmdbId, titles: (await getRecommendedCatalogTitles({ id: signal.tmdbId, mediaType: signal.mediaType, language: input.language })).titles })));
+      return { configured: true, titles: mergePostWatchRecommendations(sources, signals.map(signal => signal.tmdbId)), recordedCount: signals.length, explanation: `Catalog-derived post-watch picks from ${signals.length} title${signals.length === 1 ? "" : "s"} you explicitly recorded as watched. Streamwise does not infer viewing history.` };
     }),
   }),
   watchlist: router({

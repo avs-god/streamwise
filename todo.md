@@ -76,7 +76,12 @@
 - [ ] Keep all external review and rating labels source-specific, timestamped where available, and explicitly unavailable when no permitted provider is configured.
 - [ ] Add automated tests for deterministic recommendation inputs, rating aggregation, review validation, fact separation, and accessible title-detail workflows.
 - [ ] Validate search, recommendation, title-detail, rating, review, responsive, keyboard, type, test, and production-build flows.
-- [ ] Add a member-controlled Streamwise viewing-history signal with explicit consent, clear scope, and a private-by-default state for deterministic recommendations and the personal assistant.
+- [x] Add a member-controlled Streamwise viewing-history signal with explicit consent, clear scope, and a private-by-default state for deterministic recommendations and the personal assistant.
+- [x] Add a dedicated member-recorded viewing-signal table, member-scoped write/read/remove API, and private UI control.
+- [x] Add deterministic private post-watch picks derived only from member-recorded viewing signals, with a visible consent explanation.
+- [x] Add explicit loading, empty, and error states for private watched-record status in Watchlist.
+- [x] Add explicit loading, empty, and error states for private post-watch picks in Recommendations.
+- [ ] Add regression and signed-in browser coverage for watched-record controls and private post-watch query recovery.
 - [ ] Add a unified-intelligence explanation that distinguishes a member’s consented signals, public community aggregates, and public unverified discussion without profiling private community activity.
 - [ ] Make verified country-specific “Where to stream” provider names and offer types the visually primary field on every catalog-backed search, recommendation, and title card.
 - [ ] Add source-boundary and accessibility tests for consented viewing signals, aggregate-only community context, and prominent provider availability states.
@@ -96,6 +101,7 @@
 - [ ] Add accessibility, data-isolation, validation, and browser coverage for title details, ratings, reviews, threads, replies, reports, moderation, and spoiler notices.
 - [ ] Verify the public preview hierarchy for discovery, title-detail, community-review, critic-source, related-title, and no-catalog states without fabricating live data.
 - [ ] Link discussion threads to catalog title IDs from provider-first title details or discovery cards rather than relying only on free-text titles.
+- [ ] Auto-open the signed-in thread composer once for a valid title-linked Community deep link and visibly preserve its catalog context.
 - [ ] Add reply-to-reply controls and nested reply rendering using parentReplyId, with behavioral tests for the nested conversation flow.
 - [ ] Verify title-context thread creation, nested reply, reporting, and moderation interactions in browser-level coverage.
 - [x] Improve simple movie or series public-web queries so the AI context attempts useful source-linked reading and discussion leads before presenting an insufficient-evidence fallback.

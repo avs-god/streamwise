@@ -20,6 +20,9 @@ const mockedDb = vi.hoisted(() => ({
   getCommunityPosts: vi.fn(async () => []),
   getCommunityReports: vi.fn(async () => []),
   getCommunityThreadReports: vi.fn(async () => []),
+  getViewingSignals: vi.fn(async (userId: number) => [{ id: 88, userId, title: `Recorded title for ${userId}` }]),
+  recordViewingSignal: vi.fn(async () => undefined),
+  removeViewingSignal: vi.fn(async () => undefined),
   setCommunityPostStatus: vi.fn(async () => undefined),
   setCommunityThreadStatus: vi.fn(async () => undefined),
 }));
@@ -40,6 +43,7 @@ vi.mock("./db", () => ({
   getThreadReplies: mockedDb.getThreadReplies,
   getCommunityReports: mockedDb.getCommunityReports,
   getCommunityThreadReports: mockedDb.getCommunityThreadReports,
+  getViewingSignals: mockedDb.getViewingSignals,
   getSnapshotHistory: vi.fn(async () => []),
   getSubscriptionActions: vi.fn(async () => []),
   getSubscriptions: mockedDb.getSubscriptions,
@@ -47,7 +51,9 @@ vi.mock("./db", () => ({
   markAlertRead: vi.fn(),
   markAllAlertsRead: vi.fn(),
   removeSubscription: vi.fn(),
+  removeViewingSignal: mockedDb.removeViewingSignal,
   removeWatchlistItem: vi.fn(),
+  recordViewingSignal: mockedDb.recordViewingSignal,
   reportCommunityPost: mockedDb.reportCommunityPost,
   reportCommunityThread: mockedDb.reportCommunityThread,
   setCommunityTitleRating: mockedDb.setCommunityTitleRating,
@@ -194,5 +200,20 @@ describe("private profile data access", () => {
     expect(decisions[0]).not.toHaveProperty("community");
     expect(JSON.stringify(decisions)).not.toContain("Community-only lead");
     expect(mockedDb.getCommunityPosts).not.toHaveBeenCalled();
+  });
+
+  it("scopes explicit viewing-signal reads, records, and removal to the signed-in member", async () => {
+    vi.clearAllMocks();
+    const caller = appRouter.createCaller(contextFor(19));
+    const signals = await caller.viewingSignals.list();
+    await caller.viewingSignals.record({ tmdbId: 27205, mediaType: "movie", title: "Inception" });
+    await caller.viewingSignals.remove({ id: 88 });
+    const picks = await caller.viewingSignals.postWatchPicks({ language: "en-US" });
+    expect(signals[0]).toMatchObject({ userId: 19 });
+    expect(mockedDb.getViewingSignals).toHaveBeenCalledWith(19);
+    expect(mockedDb.recordViewingSignal).toHaveBeenCalledWith(19, { tmdbId: 27205, mediaType: "movie", title: "Inception" });
+    expect(mockedDb.removeViewingSignal).toHaveBeenCalledWith(19, 88);
+    expect(picks).toMatchObject({ configured: false, titles: [], recordedCount: 1 });
+    expect(picks.explanation).toContain("will not invent post-watch picks");
   });
 });

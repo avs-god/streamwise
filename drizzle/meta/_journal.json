@@ -64,6 +64,13 @@
       "when": 1787593191140,
       "tag": "0008_curvy_hulk",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1787596980372,
+      "tag": "0009_little_lucky_pierre",
+      "breakpoints": true
     }
   ]
 }
