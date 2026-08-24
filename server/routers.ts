@@ -79,7 +79,7 @@ export const appRouter = router({
     status: publicProcedure.query(() => ({ configured: isCatalogConfigured(), provider: "TMDb / JustWatch" })),
     search: publicProcedure.input(z.object({ query: z.string().trim().min(2).max(120), language: z.string().default("en-US") })).query(({ input }) => searchCatalog(input)),
     title: publicProcedure.input(z.object({ id: z.number().int().positive(), mediaType: z.enum(["movie", "tv"]), region: z.string(), language: z.string().default("en-US") })).query(({ input }) => getCatalogDetail(input)),
-    discover: publicProcedure.input(z.object({ mode: z.enum(["popular", "top_rated"]), mediaType: z.enum(["movie", "tv", "all"]).default("all"), region: z.string().regex(/^[A-Z]{2}$/), language: z.string().default("en-US") })).query(({ input }) => discoverCatalog(input)),
+    discover: publicProcedure.input(z.object({ mode: z.enum(["popular", "top_rated", "genre"]), mediaType: z.enum(["movie", "tv", "all"]).default("all"), region: z.string().regex(/^[A-Z]{2}$/), language: z.string().default("en-US"), genreId: z.number().int().positive().optional() })).query(({ input }) => discoverCatalog(input)),
     similar: publicProcedure.input(z.object({ id: z.number().int().positive(), mediaType: z.enum(["movie", "tv"]), language: z.string().default("en-US") })).query(({ input }) => getSimilarCatalogTitles(input)),
   }),
   ai: router({

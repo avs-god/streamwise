@@ -43,6 +43,18 @@ test("keyboard users can navigate core routes and submit the labelled discovery 
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(methodology).toBeFocused();
 
+  const popular = page.getByRole("link", { name: "Popular films + series" });
+  await popular.focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/recommendations$/);
+  await expect(page.getByRole("heading", { name: "Find the next great watch." })).toBeVisible();
+
+  await page.goto("/title/movie/1");
+  await expect(page.getByRole("heading", { name: "Legal catalog is safely on standby." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What Streamwise members think." })).toBeVisible();
+
+  await page.goto("/");
+
   const watchlist = page.getByRole("link", { name: "Watchlist", exact: true });
   await watchlist.focus();
   await expect(watchlist).toBeFocused();
@@ -76,4 +88,5 @@ test("keyboard users can navigate core routes and submit the labelled discovery 
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/community$/);
   await expect(page.getByRole("heading", { name: "What members are noticing." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Talk plots, craft, and what to watch next." })).toBeVisible();
 });
