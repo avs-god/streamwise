@@ -13,3 +13,7 @@ A browser check of `/community?tmdbId=27205&mediaType=movie&title=Inception` con
 Mobile checks at 375×812 confirmed that the no-catalog title notice, outbound-rating boundary, community rating controls, review composer, and visible-review empty state remain readable without fabricated source data. Community remained usable at the same breakpoint; the admin session showed the private moderation section only with empty report states, alongside thread and contribution controls.
 
 Authenticated desktop validation of `/community?tmdbId=27205&mediaType=movie&title=Inception` confirmed the title-linked composer opens automatically once, displays the catalog-linked Inception context, preserves the title field, and retains the title ID for publication. No discussion was submitted during this check.
+
+At 375×812, Recommendations kept popular, top-rated, media-type, genre, and Adaptations controls legible. The screen made the private post-watch no-catalog state explicit and left deterministic catalog recommendations on standby rather than fabricating picks or provider offers.
+
+After the provider-first card and title-source-boundary updates, the full suite passed with 15 files and 68 tests, alongside the keyboard browser check, TypeScript check, and production build. A standalone production server returned HTTP 200 for discovery, Recommendations, title, Community, and the compiled client asset before being stopped.

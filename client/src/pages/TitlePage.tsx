@@ -1,10 +1,11 @@
 import AppFrame from "@/components/AppFrame";
 import TitleDialog from "@/components/TitleDialog";
+import CatalogOfferPreview from "@/components/CatalogOfferPreview";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { ArrowLeft, BookmarkPlus, ExternalLink } from "lucide-react";
-import { useState } from "react";
+import React, { useState } from "react";
 import { Link, useRoute } from "wouter";
 
 const offerLabels = { stream: "Included with subscription", ads: "Ad-supported", free: "Free", rent: "Rent", buy: "Buy" } as const;
@@ -30,17 +31,25 @@ export default function TitlePage() {
 
   return <AppFrame><main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:py-14">
     <Link href="/" className="inline-flex items-center gap-1 text-sm font-semibold text-[#315c4b] underline underline-offset-4"><ArrowLeft className="size-4" />Back to discovery</Link>
-    {!title || !result.data?.configured ? <section className="mt-7 rounded-3xl border border-[#d9cfb7] bg-[#fffaf0] p-7"><p className="eyebrow">Provider-first title page</p><h1 className="serif mt-2 text-4xl text-[#315343]">Legal catalog is safely on standby.</h1><p className="mt-3 text-sm leading-6 text-[#61756c]">Connect the server-side catalog credential to view country-specific legal offers, external rating references, and related titles. Streamwise will not invent any of these.</p><p className="mt-4 rounded-xl border border-[#ddd1b7] bg-white/65 p-3 text-sm leading-6 text-[#6b603f]">IMDb, Rotten Tomatoes, and critic-reading links are unavailable until the catalog resolves this title. Streamwise imports no external score, review text, or rating timestamp without a permitted licensed provider.</p><TitleCommunity titleId={id} titleName={`Catalog title ${id}`} mediaType={mediaType} /></section> : <section className="mt-7">
+    {!title || !result.data?.configured ? <section className="mt-7 rounded-3xl border border-[#d9cfb7] bg-[#fffaf0] p-7"><TitleStandbyNotice /><TitleCommunity titleId={id} titleName={`Catalog title ${id}`} mediaType={mediaType} /></section> : <section className="mt-7">
       <p className="eyebrow">Provider-first title page</p><h1 className="serif mt-2 text-5xl text-[#214a3a]">{title.title}</h1><p className="mt-4 max-w-3xl leading-7 text-[#64766e]">{title.overview}</p>
       <LegalOfferPanel title={title} region={region} onSave={() => setSaveDialogOpen(true)} />
       <Link href={`/community?tmdbId=${title.id}&mediaType=${title.mediaType}&title=${encodeURIComponent(title.title)}`} className="mt-4 inline-flex items-center rounded-full border border-[#9eb6a4] bg-white px-4 py-2 text-sm font-semibold text-[#27543f] transition hover:bg-[#edf5ee]">Discuss this title with the community</Link>
-      <section className="mt-8 rounded-2xl border border-[#d6d0c0] bg-[#fcfaf5] p-5"><p className="eyebrow">External ratings and critic reading</p><p className="mt-2 text-sm leading-6 text-[#64766e]">Open these sources directly for their current ratings or reviews. Streamwise does not reproduce their protected scores or review text without a permitted licence.</p><p className="mt-3 rounded-lg bg-[#f0eee6] px-3 py-2 text-xs leading-5 text-[#617168]">IMDb and Rotten Tomatoes status: outbound-only references. No score, review text, or rating timestamp is imported until a permitted licensed integration is configured.</p><div className="mt-3 flex flex-wrap gap-2"><a className="rounded-full border border-[#cbd7cd] px-3 py-1.5 text-sm font-semibold text-[#315c49] hover:bg-[#eef5ef]" href={`https://www.imdb.com/find/?q=${encodedTitle}`} target="_blank" rel="noreferrer">IMDb reference</a><a className="rounded-full border border-[#cbd7cd] px-3 py-1.5 text-sm font-semibold text-[#315c49] hover:bg-[#eef5ef]" href={`https://www.rottentomatoes.com/search?search=${encodedTitle}`} target="_blank" rel="noreferrer">Rotten Tomatoes reference</a><a className="rounded-full border border-[#cbd7cd] px-3 py-1.5 text-sm font-semibold text-[#315c49] hover:bg-[#eef5ef]" href={`https://www.google.com/search?q=${encodedTitle}%20critic%20reviews`} target="_blank" rel="noreferrer">Critic and blog reading</a></div></section>
+      <ExternalReferencePanel encodedTitle={encodedTitle} />
       <TitleCommunity titleId={id} titleName={title.title} mediaType={mediaType} />
-      <RelatedTitleGrid eyebrow="After this title" title="More catalog picks for next." titles={postWatch.data?.titles ?? []} mediaType={mediaType} />
-      <RelatedTitleGrid eyebrow={`Catalog-derived similar ${mediaType === "tv" ? "series" : "films"}`} title="Keep watching from here." titles={similar.data?.titles ?? []} mediaType={mediaType} />
+      <RelatedTitleGrid eyebrow="After this title" title="More catalog picks for next." titles={postWatch.data?.titles ?? []} mediaType={mediaType} region={region} language={language} />
+      <RelatedTitleGrid eyebrow={`Catalog-derived similar ${mediaType === "tv" ? "series" : "films"}`} title="Keep watching from here." titles={similar.data?.titles ?? []} mediaType={mediaType} region={region} language={language} />
       <TitleDialog titleId={id} mediaType={mediaType} region={region} language={language} open={saveDialogOpen} onOpenChange={setSaveDialogOpen} />
     </section>}
   </main></AppFrame>;
+}
+
+export function TitleStandbyNotice() {
+  return <><p className="eyebrow">Provider-first title page</p><h1 className="serif mt-2 text-4xl text-[#315343]">Legal catalog is safely on standby.</h1><p className="mt-3 text-sm leading-6 text-[#61756c]">Connect the server-side catalog credential to view country-specific legal offers, external rating references, and related titles. Streamwise will not invent any of these.</p><p className="mt-4 rounded-xl border border-[#ddd1b7] bg-white/65 p-3 text-sm leading-6 text-[#6b603f]">IMDb, Rotten Tomatoes, and critic-reading links are unavailable until the catalog resolves this title. Streamwise imports no external score, review text, or rating timestamp without a permitted licensed provider.</p></>;
+}
+
+export function ExternalReferencePanel({ encodedTitle }: { encodedTitle: string }) {
+  return <section className="mt-8 rounded-2xl border border-[#d6d0c0] bg-[#fcfaf5] p-5"><p className="eyebrow">External ratings and critic reading</p><p className="mt-2 text-sm leading-6 text-[#64766e]">Open these sources directly for their current ratings or reviews. Streamwise does not reproduce their protected scores or review text without a permitted licence.</p><p className="mt-3 rounded-lg bg-[#f0eee6] px-3 py-2 text-xs leading-5 text-[#617168]">IMDb and Rotten Tomatoes status: outbound-only references. No score, review text, or rating timestamp is imported until a permitted licensed integration is configured.</p><div className="mt-3 flex flex-wrap gap-2"><a className="rounded-full border border-[#cbd7cd] px-3 py-1.5 text-sm font-semibold text-[#315c49] hover:bg-[#eef5ef]" href={`https://www.imdb.com/find/?q=${encodedTitle}`} target="_blank" rel="noreferrer">IMDb reference</a><a className="rounded-full border border-[#cbd7cd] px-3 py-1.5 text-sm font-semibold text-[#315c49] hover:bg-[#eef5ef]" href={`https://www.rottentomatoes.com/search?search=${encodedTitle}`} target="_blank" rel="noreferrer">Rotten Tomatoes reference</a><a className="rounded-full border border-[#cbd7cd] px-3 py-1.5 text-sm font-semibold text-[#315c49] hover:bg-[#eef5ef]" href={`https://www.google.com/search?q=${encodedTitle}%20critic%20reviews`} target="_blank" rel="noreferrer">Critic and blog reading</a></div></section>;
 }
 
 function LegalOfferPanel({ title, region, onSave }: { title: LegalTitle; region: string; onSave: () => void }) {
@@ -51,9 +60,9 @@ function LegalOfferPanel({ title, region, onSave }: { title: LegalTitle; region:
   </section>;
 }
 
-function RelatedTitleGrid({ eyebrow, title, titles, mediaType }: { eyebrow: string; title: string; titles: Array<{ id: number; mediaType: "movie" | "tv"; title: string; overview: string | null }>; mediaType: "movie" | "tv" }) {
+function RelatedTitleGrid({ eyebrow, title, titles, mediaType, region, language }: { eyebrow: string; title: string; titles: Array<{ id: number; mediaType: "movie" | "tv"; title: string; overview: string | null }>; mediaType: "movie" | "tv"; region: string; language: string }) {
   if (!titles.length) return null;
-  return <section className="mt-9 border-t border-[#d9d1c0] pt-7"><p className="eyebrow">{eyebrow}</p><h2 className="serif mt-2 text-3xl text-[#214a3a]">{title}</h2><p className="mt-2 text-sm text-[#65776f]">Catalog-derived related titles. Open one to check its country-specific legal offers.</p><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{titles.map(item => <Link key={`${item.mediaType}-${item.id}`} href={`/title/${item.mediaType}/${item.id}`} className="rounded-xl border border-[#d8d1c2] bg-white/65 p-4 transition hover:-translate-y-0.5 hover:bg-[#f2f7f0]"><p className="font-semibold text-[#315c49]">{item.title}</p><p className="mt-1 line-clamp-2 text-sm leading-5 text-[#6c7d74]">{item.overview || "Open this title to check country-specific legal offers."}</p></Link>)}</div></section>;
+  return <section className="mt-9 border-t border-[#d9d1c0] pt-7"><p className="eyebrow">{eyebrow}</p><h2 className="serif mt-2 text-3xl text-[#214a3a]">{title}</h2><p className="mt-2 text-sm text-[#65776f]">Catalog-derived related titles. Verified country-specific legal offers appear before any external or community context.</p><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{titles.map(item => <Link key={`${item.mediaType}-${item.id}`} href={`/title/${item.mediaType}/${item.id}`} className="rounded-xl border border-[#d8d1c2] bg-white/65 p-4 transition hover:-translate-y-0.5 hover:bg-[#f2f7f0]"><p className="font-semibold text-[#315c49]">{item.title}</p><p className="mt-1 line-clamp-2 text-sm leading-5 text-[#6c7d74]">{item.overview || "Open this title to check country-specific legal offers."}</p><CatalogOfferPreview titleId={item.id} mediaType={item.mediaType} region={region} language={language} /></Link>)}</div></section>;
 }
 
 function TitleCommunity({ titleId, titleName, mediaType }: { titleId: number; titleName: string; mediaType: "movie" | "tv" }) {

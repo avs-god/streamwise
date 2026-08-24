@@ -73,8 +73,9 @@
 - [ ] Add deterministic recommendation pathways for genre, similar titles, post-watch selections, adaptations, and popular or well-rated catalog titles.
 - [ ] Add enriched title pages with verified legal offers, available catalog metadata, clearly sourced external-rating states, source-linked critic coverage, and related titles.
 - [x] Add authenticated member ratings and reviews with public visibility, report controls, and community aggregates that never fabricate reviews or ratings.
-- [ ] Keep all external review and rating labels source-specific, timestamped where available, and explicitly unavailable when no permitted provider is configured.
-- [ ] Add behavioral title-page coverage for source-specific outbound IMDb, Rotten Tomatoes, and critic labels in configured and no-catalog states.
+- [x] Keep all external review and rating labels source-specific, timestamped where available, and explicitly unavailable when no permitted provider is configured.
+- [x] Add behavioral title-page coverage for source-specific outbound IMDb, Rotten Tomatoes, and critic labels in configured and no-catalog states.
+- [x] Add a behavioral no-catalog title-route test asserting outbound references are explicitly unavailable until catalog resolution.
 - [x] Audit every external review and rating surface for the same source-specific unavailable-state wording and licensed timestamp boundary.
 - [ ] Add automated tests for deterministic recommendation inputs, rating aggregation, review validation, fact separation, and accessible title-detail workflows.
 - [ ] Validate search, recommendation, title-detail, rating, review, responsive, keyboard, type, test, and production-build flows.
@@ -84,12 +85,14 @@
 - [x] Add explicit loading, empty, and error states for private watched-record status in Watchlist.
 - [x] Add explicit loading, empty, and error states for private post-watch picks in Recommendations.
 - [ ] Add regression and signed-in browser coverage for watched-record controls and private post-watch query recovery.
-- [ ] Add a unified-intelligence explanation that distinguishes a member’s consented signals, public community aggregates, and public unverified discussion without profiling private community activity.
-- [ ] Make verified country-specific “Where to stream” provider names and offer types the visually primary field on every catalog-backed search, recommendation, and title card.
+- [x] Add a unified-intelligence explanation that distinguishes a member’s consented signals, public community aggregates, and public unverified discussion without profiling private community activity.
+- [x] Make verified country-specific “Where to stream” provider names and offer types the visually primary field on every catalog-backed search, recommendation, and title card.
 - [ ] Add source-boundary and accessibility tests for consented viewing signals, aggregate-only community context, and prominent provider availability states.
 - [x] Add source-colour-coded public-web, critic, and public-discussion tags with attribution, explicit evidence level, and a strict unverified-context boundary.
-- [ ] Research official or licensed catalog/integration paths for major streaming providers and document which sources can support direct availability data versus outbound reference links only.
-- [ ] Ensure verified country-specific “Where to stream” data remains visually and semantically dominant over all public-web and discussion tags.
+- [x] Research official or licensed catalog/integration paths for major streaming providers and document which sources can support direct availability data versus outbound reference links only.
+- [x] Ensure verified country-specific “Where to stream” data remains visually and semantically dominant over all public-web and discussion tags.
+- [x] Apply the verified provider-and-offer preview to TitlePage related and similar catalog cards, with candid unavailable states.
+- [x] Add cross-surface provider-hierarchy and CatalogOfferPreview unavailable-state behavior coverage.
 - [ ] Verify the published scheduled callback accepts only its persisted cron identity and reports `catalogConfigured:false` safely when no catalog token is configured.
 - [x] Add a focused scheduled-refresh test for no-token, unknown-cron, and orphan-cron behavior before the final release checkpoint.
 - [ ] Restore the provider-first deterministic discovery surface with title, genre, similar, post-watch, adaptation, popular, and top-rated pathways.

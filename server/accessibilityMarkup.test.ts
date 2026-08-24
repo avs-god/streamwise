@@ -142,4 +142,35 @@ describe("keyboard and semantic-accessibility regression checks", () => {
     expect(community).toContain("ml-5 border-l-4");
     expect(community).toContain("Write a top-level reply instead");
   });
+
+  it("distinguishes consented private inputs, aggregate community context, and unverified public-web context", () => {
+    const home = source("client/src/pages/Home.tsx");
+    expect(home).toContain("Your consented signals:");
+    expect(home).toContain("Streamwise never infers viewing history.");
+    expect(home).toContain("Community context:");
+    expect(home).toContain("never a private profile signal");
+    expect(home).toContain("AI public-web context:");
+  });
+
+  it("keeps verified provider and offer categories ahead of public-web context on catalog cards", () => {
+    const preview = source("client/src/components/CatalogOfferPreview.tsx");
+    const home = source("client/src/pages/Home.tsx");
+    const recommendations = source("client/src/pages/Recommendations.tsx");
+    expect(preview).toContain("Where to stream in {region}");
+    expect(preview).toContain("JustWatch via TMDb");
+    expect(preview).toContain("offer.name");
+    expect(preview).toContain("offerType[offer.type]");
+    expect(preview).toContain("Verified legal offers could not be loaded for this card");
+    expect(preview).toContain("Legal provider preview is unavailable");
+    expect(home).toContain("<CatalogOfferPreview titleId={title.id}");
+    expect(recommendations).toContain("<CatalogOfferPreview titleId={title.id}");
+    expect(source("client/src/pages/TitlePage.tsx")).toContain("<CatalogOfferPreview titleId={item.id}");
+  });
+
+  it("does not guess adaptation relationships when no verified structured catalog field exists", () => {
+    const recommendations = source("client/src/pages/Recommendations.tsx");
+    expect(recommendations).toContain("Adaptation lists are not guessed.");
+    expect(recommendations).toContain("complete, licensed");
+    expect(recommendations).toContain('aria-expanded={adaptationNoticeOpen}');
+  });
 });
