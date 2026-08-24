@@ -216,3 +216,19 @@ export async function getCatalogDetail(input: {
     },
   };
 }
+
+export type DiscoveryMode = "popular" | "top_rated";
+
+export async function discoverCatalog(input: { mode: DiscoveryMode; mediaType: "movie" | "tv" | "all"; region: string; language: string }): Promise<{ configured: boolean; titles: CatalogTitle[]; checkedAt: string | null; explanation: string }> {
+  if (!isCatalogConfigured()) return { configured: false, titles: [], checkedAt: null, explanation: "Live catalog discovery is not configured, so Streamwise will not invent recommendations or provider offers." };
+  type Result = { id: number; title?: string; name?: string; original_title?: string; original_name?: string; overview?: string; poster_path?: string | null; release_date?: string; first_air_date?: string };
+  const mediaTypes = input.mediaType === "all" ? ["movie", "tv"] as const : [input.mediaType] as const;
+  const sortBy = input.mode === "popular" ? "popularity.desc" : "vote_average.desc";
+  const pages = await Promise.all(mediaTypes.map(async mediaType => {
+    const query = new URLSearchParams({ include_adult: "false", include_video: "false", language: cleanLanguage(input.language), page: "1", watch_region: cleanRegion(input.region), sort_by: sortBy });
+    if (input.mode === "top_rated") query.set("vote_count.gte", "200");
+    const result = await tmdbFetch<{ results?: Result[] }>(`/discover/${mediaType}?${query.toString()}`);
+    return (result.results ?? []).map(item => ({ id: item.id, mediaType, title: item.title ?? item.name ?? "Untitled", originalTitle: item.original_title ?? item.original_name ?? null, overview: item.overview ?? null, posterPath: item.poster_path ?? null, releaseDate: item.release_date ?? item.first_air_date ?? null }));
+  }));
+  return { configured: true, titles: pages.flat().slice(0, 16), checkedAt: new Date().toISOString(), explanation: input.mode === "popular" ? "Catalog popularity ranking. Provider availability must be opened per title for the selected country." : "Catalog rating ranking with a minimum vote count. Provider availability must be opened per title for the selected country." };
+}

@@ -10,7 +10,12 @@ const mockedDb = vi.hoisted(() => ({
   applySubscriptionAction: vi.fn(async () => undefined),
   createAlert: vi.fn(async () => undefined),
   createCommunityPost: vi.fn(async () => undefined),
+  createCommunityThread: vi.fn(async () => undefined),
+  createThreadReply: vi.fn(async () => undefined),
+  getCommunityThreads: vi.fn(async () => []),
+  getThreadReplies: vi.fn(async () => []),
   reportCommunityPost: vi.fn(async () => undefined),
+  reportCommunityThread: vi.fn(async () => undefined),
   getCommunityPosts: vi.fn(async () => []),
 }));
 
@@ -21,9 +26,13 @@ vi.mock("./db", () => ({
   applySubscriptionAction: mockedDb.applySubscriptionAction,
   createAlert: mockedDb.createAlert,
   createCommunityPost: mockedDb.createCommunityPost,
+  createCommunityThread: mockedDb.createCommunityThread,
+  createThreadReply: mockedDb.createThreadReply,
   getAlertPreferences: mockedDb.getAlertPreferences,
   getAlerts: vi.fn(async () => []),
   getCommunityPosts: mockedDb.getCommunityPosts,
+  getCommunityThreads: mockedDb.getCommunityThreads,
+  getThreadReplies: mockedDb.getThreadReplies,
   getCommunityReports: vi.fn(async () => []),
   getSnapshotHistory: vi.fn(async () => []),
   getSubscriptionActions: vi.fn(async () => []),
@@ -34,7 +43,9 @@ vi.mock("./db", () => ({
   removeSubscription: vi.fn(),
   removeWatchlistItem: vi.fn(),
   reportCommunityPost: mockedDb.reportCommunityPost,
+  reportCommunityThread: mockedDb.reportCommunityThread,
   setCommunityPostStatus: vi.fn(),
+  setCommunityThreadStatus: vi.fn(),
   updateAlertPreferences: mockedDb.updateAlertPreferences,
   updateSubscription: vi.fn(),
   updateWatchlistIntent: vi.fn(),
@@ -107,5 +118,19 @@ describe("private profile data access", () => {
 
     expect(mockedDb.createCommunityPost).toHaveBeenCalledWith(7, post);
     expect(mockedDb.reportCommunityPost).toHaveBeenCalledWith(7, 12, { reason: "misleading", detail: "Needs a source check." });
+  });
+
+  it("writes thread creation, replies, and reports under the authenticated member", async () => {
+    const caller = appRouter.createCaller(contextFor(19));
+    const thread = { tmdbId: null, title: "Example Film", mediaType: "movie" as const, topic: "plot" as const, headline: "A careful plot discussion", body: "This is a spoiler-conscious discussion with enough useful context.", containsSpoilers: true, shareAttribution: false };
+    await caller.community.createThread(thread);
+    await caller.community.reply({ threadId: 5, parentReplyId: null, body: "A thoughtful reply.", containsSpoilers: false, shareAttribution: false });
+    await caller.community.reply({ threadId: 5, parentReplyId: 2, body: "A nested thoughtful reply.", containsSpoilers: false, shareAttribution: false });
+    await caller.community.reportThread({ threadId: 5, replyId: null, reason: "spoiler", detail: "Please add a clearer spoiler label." });
+
+    expect(mockedDb.createCommunityThread).toHaveBeenCalledWith(19, thread);
+    expect(mockedDb.createThreadReply).toHaveBeenCalledWith(19, { threadId: 5, parentReplyId: null, body: "A thoughtful reply.", containsSpoilers: false, shareAttribution: false });
+    expect(mockedDb.createThreadReply).toHaveBeenCalledWith(19, { threadId: 5, parentReplyId: 2, body: "A nested thoughtful reply.", containsSpoilers: false, shareAttribution: false });
+    expect(mockedDb.reportCommunityThread).toHaveBeenCalledWith(19, { threadId: 5, replyId: null, reason: "spoiler", detail: "Please add a clearer spoiler label." });
   });
 });

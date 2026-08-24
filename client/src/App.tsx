@@ -9,6 +9,8 @@ import Watchlist from "@/pages/Watchlist";
 import Updates from "@/pages/Updates";
 import Assistant from "@/pages/Assistant";
 import Community from "@/pages/Community";
+import Recommendations from "@/pages/Recommendations";
+import TitlePage from "@/pages/TitlePage";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -23,6 +25,8 @@ function Router() {
       <Route path="/updates" component={Updates} />
       <Route path="/assistant" component={Assistant} />
       <Route path="/community" component={Community} />
+      <Route path="/recommendations" component={Recommendations} />
+      <Route path="/title/:mediaType/:id" component={TitlePage} />
       <Route path="/providers/:slug" component={ProviderPage} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />

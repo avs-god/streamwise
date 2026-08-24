@@ -141,6 +141,58 @@ export const communityReports = mysqlTable(
   table => [uniqueIndex("community_report_reporter_post_unique").on(table.reporterUserId, table.postId), index("community_reports_post_status_idx").on(table.postId, table.status)],
 );
 
+export const communityThreads = mysqlTable(
+  "communityThreads",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    tmdbId: int("tmdbId"),
+    title: varchar("title", { length: 500 }).notNull(),
+    mediaType: mysqlEnum("mediaType", ["movie", "tv", "unknown"]).default("unknown").notNull(),
+    topic: mysqlEnum("topic", ["plot", "recommendation", "discussion", "craft"]).notNull(),
+    headline: varchar("headline", { length: 240 }).notNull(),
+    body: text("body").notNull(),
+    containsSpoilers: boolean("containsSpoilers").default(false).notNull(),
+    shareAttribution: boolean("shareAttribution").default(false).notNull(),
+    status: mysqlEnum("status", ["visible", "hidden", "removed"]).default("visible").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [index("community_threads_visible_created_idx").on(table.status, table.createdAt), index("community_threads_title_idx").on(table.tmdbId, table.mediaType)],
+);
+
+export const communityThreadReplies = mysqlTable(
+  "communityThreadReplies",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    threadId: int("threadId").notNull(),
+    userId: int("userId").notNull(),
+    parentReplyId: int("parentReplyId"),
+    body: text("body").notNull(),
+    containsSpoilers: boolean("containsSpoilers").default(false).notNull(),
+    shareAttribution: boolean("shareAttribution").default(false).notNull(),
+    status: mysqlEnum("status", ["visible", "hidden", "removed"]).default("visible").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [index("community_thread_replies_thread_created_idx").on(table.threadId, table.createdAt)],
+);
+
+export const communityThreadReports = mysqlTable(
+  "communityThreadReports",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    threadId: int("threadId").notNull(),
+    replyId: int("replyId"),
+    reporterUserId: int("reporterUserId").notNull(),
+    reason: mysqlEnum("reason", ["spoiler", "misleading", "spam", "abuse", "privacy", "other"]).notNull(),
+    detail: varchar("detail", { length: 500 }),
+    status: mysqlEnum("status", ["open", "resolved", "dismissed"]).default("open").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => [uniqueIndex("thread_report_reporter_target_unique").on(table.reporterUserId, table.threadId, table.replyId)],
+);
+
 export const scheduledJobs = mysqlTable("scheduledJobs", {
   id: int("id").autoincrement().primaryKey(),
   jobKey: varchar("jobKey", { length: 80 }).notNull().unique(),

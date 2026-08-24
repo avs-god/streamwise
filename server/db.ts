@@ -6,6 +6,9 @@ import {
   availabilitySnapshots,
   communityPosts,
   communityReports,
+  communityThreadReplies,
+  communityThreadReports,
+  communityThreads,
   InsertUser,
   scheduledJobs,
   subscriptionActions,
@@ -237,4 +240,44 @@ export async function getCommunityReports() {
 export async function setCommunityPostStatus(postId: number, status: "visible" | "hidden" | "removed") {
   const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
   await db.update(communityPosts).set({ status }).where(eq(communityPosts.id, postId));
+}
+
+export type CommunityThreadInput = { tmdbId: number | null; title: string; mediaType: "movie" | "tv" | "unknown"; topic: "plot" | "recommendation" | "discussion" | "craft"; headline: string; body: string; containsSpoilers: boolean; shareAttribution: boolean };
+
+export async function createCommunityThread(userId: number, input: CommunityThreadInput) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  await db.insert(communityThreads).values({ userId, ...input });
+}
+
+export async function getCommunityThreads(input: { tmdbId?: number; mediaType?: "movie" | "tv" | "unknown"; topic?: CommunityThreadInput["topic"] }) {
+  const db = await getDb(); if (!db) return [];
+  const conditions = [eq(communityThreads.status, "visible")];
+  if (input.tmdbId) conditions.push(eq(communityThreads.tmdbId, input.tmdbId));
+  if (input.mediaType) conditions.push(eq(communityThreads.mediaType, input.mediaType));
+  if (input.topic) conditions.push(eq(communityThreads.topic, input.topic));
+  const rows = await db.select({ thread: communityThreads, contributorName: users.name }).from(communityThreads).leftJoin(users, eq(communityThreads.userId, users.id)).where(and(...conditions)).orderBy(desc(communityThreads.createdAt)).limit(80);
+  return rows.map(({ thread, contributorName }) => ({ ...thread, contributorName: thread.shareAttribution ? contributorName ?? "Streamwise member" : null }));
+}
+
+export async function getThreadReplies(threadId: number) {
+  const db = await getDb(); if (!db) return [];
+  const rows = await db.select({ reply: communityThreadReplies, contributorName: users.name }).from(communityThreadReplies).leftJoin(users, eq(communityThreadReplies.userId, users.id)).where(and(eq(communityThreadReplies.threadId, threadId), eq(communityThreadReplies.status, "visible"))).orderBy(communityThreadReplies.createdAt).limit(120);
+  return rows.map(({ reply, contributorName }) => ({ ...reply, contributorName: reply.shareAttribution ? contributorName ?? "Streamwise member" : null }));
+}
+
+export async function createThreadReply(userId: number, input: { threadId: number; parentReplyId: number | null; body: string; containsSpoilers: boolean; shareAttribution: boolean }) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  const thread = (await db.select({ id: communityThreads.id }).from(communityThreads).where(and(eq(communityThreads.id, input.threadId), eq(communityThreads.status, "visible"))).limit(1))[0];
+  if (!thread) throw new Error("Discussion thread not found.");
+  await db.insert(communityThreadReplies).values({ userId, ...input });
+}
+
+export async function reportCommunityThread(userId: number, input: { threadId: number; replyId: number | null; reason: "spoiler" | "misleading" | "spam" | "abuse" | "privacy" | "other"; detail: string | null }) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  await db.insert(communityThreadReports).values({ reporterUserId: userId, ...input }).onDuplicateKeyUpdate({ set: { reason: input.reason, detail: input.detail, status: "open" } });
+}
+
+export async function setCommunityThreadStatus(threadId: number, status: "visible" | "hidden" | "removed") {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  await db.update(communityThreads).set({ status }).where(eq(communityThreads.id, threadId));
 }

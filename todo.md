@@ -78,3 +78,16 @@
 - [ ] Ensure verified country-specific “Where to stream” data remains visually and semantically dominant over all public-web and discussion tags.
 - [ ] Verify the published scheduled callback accepts only its persisted cron identity and reports `catalogConfigured:false` safely when no catalog token is configured.
 - [x] Add a focused scheduled-refresh test for no-token, unknown-cron, and orphan-cron behavior before the final release checkpoint.
+- [ ] Restore the provider-first deterministic discovery surface with title, genre, similar, post-watch, adaptation, popular, and top-rated pathways.
+- [ ] Restore a dedicated title page with country-specific legal provider offers first, permitted external rating and critic references, community rating and reviews, and related titles.
+- [ ] Keep IMDb and Rotten Tomatoes as outbound-only references until an explicitly permitted licensed rating integration is configured; never scrape or reproduce their scores or review text.
+- [ ] Restore consented private viewing signals, public community rating aggregates, and strict exclusion of public discussion from personal profiling and verified catalog evidence.
+- [x] Add a dedicated deterministic recommendations surface for popular and top-rated films and series, while retaining candid no-catalog states.
+- [ ] Add moderated, title-linked discussion threads for plot talk, recommendations, and general movie or series conversation, including spoiler guidance and visibility status.
+- [ ] Add authenticated thread creation, threaded replies, reporting, and admin moderation controls with contributor attribution consent and private-by-default identity handling.
+- [x] Keep discussion threads categorically separate from verified streaming availability, alerts, tracking, deterministic recommendations, and private member profiling.
+- [ ] Add accessibility, data-isolation, validation, and browser coverage for title details, ratings, reviews, threads, replies, reports, moderation, and spoiler notices.
+- [ ] Verify the public preview hierarchy for discovery, title-detail, community-review, critic-source, related-title, and no-catalog states without fabricating live data.
+- [ ] Link discussion threads to catalog title IDs from provider-first title details or discovery cards rather than relying only on free-text titles.
+- [ ] Add reply-to-reply controls and nested reply rendering using parentReplyId, with behavioral tests for the nested conversation flow.
+- [ ] Verify title-context thread creation, nested reply, reporting, and moderation interactions in browser-level coverage.

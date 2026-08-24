@@ -8,10 +8,14 @@ import {
   addWatchlistItem,
   applySubscriptionAction,
   createCommunityPost,
+  createCommunityThread,
+  createThreadReply,
   createAlert,
   getAlertPreferences,
   getAlerts,
   getCommunityPosts,
+  getCommunityThreads,
+  getThreadReplies,
   getCommunityReports,
   getSnapshotHistory,
   getSubscriptionActions,
@@ -20,6 +24,7 @@ import {
   markAlertRead,
   markAllAlertsRead,
   reportCommunityPost,
+  reportCommunityThread,
   removeSubscription,
   removeWatchlistItem,
   updateAlertPreferences,
@@ -28,8 +33,9 @@ import {
   updateWatchlistMonitoring,
   updateWatchlistNote,
   setCommunityPostStatus,
+  setCommunityThreadStatus,
 } from "./db";
-import { getCatalogDetail, isCatalogConfigured, searchCatalog } from "./catalog";
+import { discoverCatalog, getCatalogDetail, isCatalogConfigured, searchCatalog } from "./catalog";
 import { refreshTrackedTitle, refreshTrackedTitlesForUser } from "./trackingService";
 import { syncRenewalAlerts } from "./alertService";
 import { researchDiscoveryLead } from "./aiDiscovery";
@@ -55,6 +61,8 @@ const communityPostInput = z.object({
   providerName: z.string().trim().min(1).max(150).nullable().optional(), kind: communityKind, body: z.string().trim().min(20).max(2000),
   sourceUrl: z.string().url().max(1024).nullable().optional(), shareAttribution: z.boolean(),
 });
+const threadTopic = z.enum(["plot", "recommendation", "discussion", "craft"]);
+const threadInput = z.object({ tmdbId: z.number().int().positive().nullable().optional(), title: z.string().trim().min(1).max(500), mediaType: z.enum(["movie", "tv", "unknown"]), topic: threadTopic, headline: z.string().trim().min(5).max(240), body: z.string().trim().min(20).max(5000), containsSpoilers: z.boolean(), shareAttribution: z.boolean() });
 
 export const appRouter = router({
   system: systemRouter,
@@ -66,6 +74,7 @@ export const appRouter = router({
     status: publicProcedure.query(() => ({ configured: isCatalogConfigured(), provider: "TMDb / JustWatch" })),
     search: publicProcedure.input(z.object({ query: z.string().trim().min(2).max(120), language: z.string().default("en-US") })).query(({ input }) => searchCatalog(input)),
     title: publicProcedure.input(z.object({ id: z.number().int().positive(), mediaType: z.enum(["movie", "tv"]), region: z.string(), language: z.string().default("en-US") })).query(({ input }) => getCatalogDetail(input)),
+    discover: publicProcedure.input(z.object({ mode: z.enum(["popular", "top_rated"]), mediaType: z.enum(["movie", "tv", "all"]).default("all"), region: z.string().regex(/^[A-Z]{2}$/), language: z.string().default("en-US") })).query(({ input }) => discoverCatalog(input)),
   }),
   ai: router({
     research: protectedProcedure.input(z.object({ query: z.string().trim().min(3).max(220), region: z.string().regex(/^[A-Z]{2}$/), language: z.string().min(2).max(20) })).mutation(({ input }) => researchDiscoveryLead(input)),
@@ -78,9 +87,15 @@ export const appRouter = router({
     list: publicProcedure.input(z.object({ region: z.string().regex(/^[A-Z]{2}$/).optional(), kind: communityKind.optional() }).optional()).query(({ input }) => getCommunityPosts(input ?? {})),
     contribute: protectedProcedure.input(communityPostInput).mutation(async ({ ctx, input }) => { await createCommunityPost(ctx.user.id, { ...input, providerName: input.providerName ?? null, sourceUrl: input.sourceUrl ?? null }); return { success: true }; }),
     report: protectedProcedure.input(z.object({ postId: z.number().int().positive(), reason: z.enum(["misleading", "spam", "abuse", "privacy", "other"]), detail: z.string().trim().max(500).nullable().optional() })).mutation(async ({ ctx, input }) => { await reportCommunityPost(ctx.user.id, input.postId, { reason: input.reason, detail: input.detail ?? null }); return { success: true }; }),
+    threads: publicProcedure.input(z.object({ tmdbId: z.number().int().positive().optional(), mediaType: z.enum(["movie", "tv", "unknown"]).optional(), topic: threadTopic.optional() }).optional()).query(({ input }) => getCommunityThreads(input ?? {})),
+    createThread: protectedProcedure.input(threadInput).mutation(async ({ ctx, input }) => { await createCommunityThread(ctx.user.id, { ...input, tmdbId: input.tmdbId ?? null }); return { success: true }; }),
+    replies: publicProcedure.input(z.object({ threadId: z.number().int().positive() })).query(({ input }) => getThreadReplies(input.threadId)),
+    reply: protectedProcedure.input(z.object({ threadId: z.number().int().positive(), parentReplyId: z.number().int().positive().nullable().optional(), body: z.string().trim().min(2).max(4000), containsSpoilers: z.boolean(), shareAttribution: z.boolean() })).mutation(async ({ ctx, input }) => { await createThreadReply(ctx.user.id, { ...input, parentReplyId: input.parentReplyId ?? null }); return { success: true }; }),
+    reportThread: protectedProcedure.input(z.object({ threadId: z.number().int().positive(), replyId: z.number().int().positive().nullable().optional(), reason: z.enum(["spoiler", "misleading", "spam", "abuse", "privacy", "other"]), detail: z.string().trim().max(500).nullable().optional() })).mutation(async ({ ctx, input }) => { await reportCommunityThread(ctx.user.id, { ...input, replyId: input.replyId ?? null, detail: input.detail ?? null }); return { success: true }; }),
     moderation: router({
       reports: adminProcedure.query(() => getCommunityReports()),
       setStatus: adminProcedure.input(z.object({ postId: z.number().int().positive(), status: z.enum(["visible", "hidden", "removed"]) })).mutation(async ({ input }) => { await setCommunityPostStatus(input.postId, input.status); return { success: true }; }),
+      setThreadStatus: adminProcedure.input(z.object({ threadId: z.number().int().positive(), status: z.enum(["visible", "hidden", "removed"]) })).mutation(async ({ input }) => { await setCommunityThreadStatus(input.threadId, input.status); return { success: true }; }),
     }),
   }),
   watchlist: router({
