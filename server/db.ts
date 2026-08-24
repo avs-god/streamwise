@@ -28,6 +28,11 @@ export async function getDb() {
   return _db;
 }
 
+/** Test seam for exercising public query mappings without a live database. */
+export function setDbForTests(db: ReturnType<typeof drizzle> | null) {
+  _db = db;
+}
+
 export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) throw new Error("User openId is required for upsert");
   const db = await getDb();
@@ -213,6 +218,11 @@ export type CommunityPostInput = {
   shareAttribution: boolean;
 };
 
+export function toPublicCommunityItem<T extends { userId: number; shareAttribution: boolean }>(item: T, contributorName: string | null) {
+  const { userId: _userId, ...publicItem } = item;
+  return { ...publicItem, contributorName: item.shareAttribution ? contributorName ?? "Streamwise member" : null };
+}
+
 export async function createCommunityPost(userId: number, input: CommunityPostInput) {
   const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
   await db.insert(communityPosts).values({ userId, ...input });
@@ -224,7 +234,7 @@ export async function getCommunityPosts(input: { region?: string; kind?: Communi
   if (input.region) conditions.push(eq(communityPosts.region, input.region));
   if (input.kind) conditions.push(eq(communityPosts.kind, input.kind));
   const rows = await db.select({ post: communityPosts, contributorName: users.name }).from(communityPosts).leftJoin(users, eq(communityPosts.userId, users.id)).where(and(...conditions)).orderBy(desc(communityPosts.createdAt)).limit(80);
-  return rows.map(({ post, contributorName }) => ({ ...post, contributorName: post.shareAttribution ? contributorName ?? "Streamwise member" : null }));
+  return rows.filter(({ post }) => post.status === "visible").map(({ post, contributorName }) => toPublicCommunityItem(post, contributorName));
 }
 
 export async function reportCommunityPost(userId: number, postId: number, input: { reason: "misleading" | "spam" | "abuse" | "privacy" | "other"; detail: string | null }) {
@@ -258,13 +268,13 @@ export async function getCommunityThreads(input: { tmdbId?: number; mediaType?: 
   if (input.mediaType) conditions.push(eq(communityThreads.mediaType, input.mediaType));
   if (input.topic) conditions.push(eq(communityThreads.topic, input.topic));
   const rows = await db.select({ thread: communityThreads, contributorName: users.name }).from(communityThreads).leftJoin(users, eq(communityThreads.userId, users.id)).where(and(...conditions)).orderBy(desc(communityThreads.createdAt)).limit(80);
-  return rows.map(({ thread, contributorName }) => ({ ...thread, contributorName: thread.shareAttribution ? contributorName ?? "Streamwise member" : null }));
+  return rows.filter(({ thread }) => thread.status === "visible").map(({ thread, contributorName }) => toPublicCommunityItem(thread, contributorName));
 }
 
 export async function getThreadReplies(threadId: number) {
   const db = await getDb(); if (!db) return [];
   const rows = await db.select({ reply: communityThreadReplies, contributorName: users.name }).from(communityThreadReplies).leftJoin(users, eq(communityThreadReplies.userId, users.id)).where(and(eq(communityThreadReplies.threadId, threadId), eq(communityThreadReplies.status, "visible"))).orderBy(communityThreadReplies.createdAt).limit(120);
-  return rows.map(({ reply, contributorName }) => ({ ...reply, contributorName: reply.shareAttribution ? contributorName ?? "Streamwise member" : null }));
+  return rows.filter(({ reply }) => reply.status === "visible").map(({ reply, contributorName }) => toPublicCommunityItem(reply, contributorName));
 }
 
 export async function createThreadReply(userId: number, input: { threadId: number; parentReplyId: number | null; body: string; containsSpoilers: boolean; shareAttribution: boolean }) {
@@ -308,5 +318,5 @@ export async function getCommunityTitleRatingSummary(input: { tmdbId: number; me
 export async function getCommunityTitleReviews(input: { tmdbId: number; mediaType: "movie" | "tv" }) {
   const db = await getDb(); if (!db) return [];
   const rows = await db.select({ post: communityPosts, contributorName: users.name }).from(communityPosts).leftJoin(users, eq(communityPosts.userId, users.id)).where(and(eq(communityPosts.tmdbId, input.tmdbId), eq(communityPosts.mediaType, input.mediaType), eq(communityPosts.kind, "review"), eq(communityPosts.status, "visible"))).orderBy(desc(communityPosts.createdAt)).limit(60);
-  return rows.map(({ post, contributorName }) => ({ ...post, contributorName: post.shareAttribution ? contributorName ?? "Streamwise member" : null }));
+  return rows.filter(({ post }) => post.status === "visible").map(({ post, contributorName }) => toPublicCommunityItem(post, contributorName));
 }

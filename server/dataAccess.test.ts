@@ -16,7 +16,12 @@ const mockedDb = vi.hoisted(() => ({
   getThreadReplies: vi.fn(async () => []),
   reportCommunityPost: vi.fn(async () => undefined),
   reportCommunityThread: vi.fn(async () => undefined),
+  setCommunityTitleRating: vi.fn(async () => undefined),
   getCommunityPosts: vi.fn(async () => []),
+  getCommunityReports: vi.fn(async () => []),
+  getCommunityThreadReports: vi.fn(async () => []),
+  setCommunityPostStatus: vi.fn(async () => undefined),
+  setCommunityThreadStatus: vi.fn(async () => undefined),
 }));
 
 vi.mock("./db", () => ({
@@ -33,7 +38,8 @@ vi.mock("./db", () => ({
   getCommunityPosts: mockedDb.getCommunityPosts,
   getCommunityThreads: mockedDb.getCommunityThreads,
   getThreadReplies: mockedDb.getThreadReplies,
-  getCommunityReports: vi.fn(async () => []),
+  getCommunityReports: mockedDb.getCommunityReports,
+  getCommunityThreadReports: mockedDb.getCommunityThreadReports,
   getSnapshotHistory: vi.fn(async () => []),
   getSubscriptionActions: vi.fn(async () => []),
   getSubscriptions: mockedDb.getSubscriptions,
@@ -44,8 +50,9 @@ vi.mock("./db", () => ({
   removeWatchlistItem: vi.fn(),
   reportCommunityPost: mockedDb.reportCommunityPost,
   reportCommunityThread: mockedDb.reportCommunityThread,
-  setCommunityPostStatus: vi.fn(),
-  setCommunityThreadStatus: vi.fn(),
+  setCommunityTitleRating: mockedDb.setCommunityTitleRating,
+  setCommunityPostStatus: mockedDb.setCommunityPostStatus,
+  setCommunityThreadStatus: mockedDb.setCommunityThreadStatus,
   updateAlertPreferences: mockedDb.updateAlertPreferences,
   updateSubscription: vi.fn(),
   updateWatchlistIntent: vi.fn(),
@@ -55,7 +62,7 @@ vi.mock("./db", () => ({
 
 import { appRouter } from "./routers";
 
-function contextFor(userId: number): TrpcContext {
+function contextFor(userId: number, role: "user" | "admin" = "user"): TrpcContext {
   return {
     user: {
       id: userId,
@@ -63,7 +70,7 @@ function contextFor(userId: number): TrpcContext {
       name: `User ${userId}`,
       email: `user-${userId}@example.com`,
       loginMethod: "manus",
-      role: "user",
+      role,
       createdAt: new Date(),
       updatedAt: new Date(),
       lastSignedIn: new Date(),
@@ -132,5 +139,60 @@ describe("private profile data access", () => {
     expect(mockedDb.createThreadReply).toHaveBeenCalledWith(19, { threadId: 5, parentReplyId: null, body: "A thoughtful reply.", containsSpoilers: false, shareAttribution: false });
     expect(mockedDb.createThreadReply).toHaveBeenCalledWith(19, { threadId: 5, parentReplyId: 2, body: "A nested thoughtful reply.", containsSpoilers: false, shareAttribution: false });
     expect(mockedDb.reportCommunityThread).toHaveBeenCalledWith(19, { threadId: 5, replyId: null, reason: "spoiler", detail: "Please add a clearer spoiler label." });
+  });
+
+  it("scopes title ratings to the authenticated member and rejects out-of-range values", async () => {
+    const caller = appRouter.createCaller(contextFor(7));
+    await caller.community.setTitleRating({ tmdbId: 27205, mediaType: "movie", rating: 4 });
+    expect(mockedDb.setCommunityTitleRating).toHaveBeenCalledWith(7, { tmdbId: 27205, mediaType: "movie", rating: 4 });
+    await expect(caller.community.setTitleRating({ tmdbId: 27205, mediaType: "movie", rating: 6 })).rejects.toThrow();
+  });
+
+  it("rejects malformed community contributions, thread replies, and reports before persistence", async () => {
+    const caller = appRouter.createCaller(contextFor(7));
+    await expect(caller.community.contribute({ title: "Film", mediaType: "movie", region: "IND", providerName: null, kind: "review", body: "Too short", sourceUrl: null, shareAttribution: false })).rejects.toThrow();
+    await expect(caller.community.createThread({ tmdbId: null, title: "Film", mediaType: "movie", topic: "plot", headline: "Tiny", body: "Too short", containsSpoilers: false, shareAttribution: false })).rejects.toThrow();
+    await expect(caller.community.reply({ threadId: 0, parentReplyId: null, body: "x", containsSpoilers: false, shareAttribution: false })).rejects.toThrow();
+    await expect(caller.community.reportThread({ threadId: 5, replyId: null, reason: "not-a-reason" as never, detail: null })).rejects.toThrow();
+    expect(mockedDb.createCommunityPost).toHaveBeenCalledTimes(1);
+    expect(mockedDb.createCommunityThread).toHaveBeenCalledTimes(1);
+    expect(mockedDb.createThreadReply).toHaveBeenCalledTimes(2);
+    expect(mockedDb.reportCommunityThread).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects each malformed report endpoint before any report persistence call", async () => {
+    vi.clearAllMocks();
+    const caller = appRouter.createCaller(contextFor(7));
+    await expect(caller.community.report({ postId: 0, reason: "spam", detail: null })).rejects.toThrow();
+    expect(mockedDb.reportCommunityPost).not.toHaveBeenCalled();
+    await expect(caller.community.reportThread({ threadId: 5, replyId: 0, reason: "spam", detail: null })).rejects.toThrow();
+    expect(mockedDb.reportCommunityThread).not.toHaveBeenCalled();
+  });
+
+  it("limits moderation reads and status changes to administrators", async () => {
+    const member = appRouter.createCaller(contextFor(7));
+    const admin = appRouter.createCaller(contextFor(1, "admin"));
+    await expect(member.community.moderation.reports()).rejects.toThrow();
+    await admin.community.moderation.reports();
+    await admin.community.moderation.threadReports();
+    await admin.community.moderation.setStatus({ postId: 12, status: "hidden" });
+    await admin.community.moderation.setThreadStatus({ threadId: 5, status: "removed" });
+    expect(mockedDb.getCommunityReports).toHaveBeenCalledTimes(1);
+    expect(mockedDb.getCommunityThreadReports).toHaveBeenCalledTimes(1);
+    expect(mockedDb.setCommunityPostStatus).toHaveBeenCalledWith(12, "hidden");
+    expect(mockedDb.setCommunityThreadStatus).toHaveBeenCalledWith(5, "removed");
+  });
+
+  it("keeps catalog and subscription decisions independent of community data", async () => {
+    vi.clearAllMocks();
+    mockedDb.getCommunityPosts.mockResolvedValue([{ id: 99, userId: 7, title: "Community-only lead", body: "Unverified discussion must not change private decisions." }]);
+    mockedDb.getSubscriptions.mockResolvedValue([{ id: 22, userId: 7, providerName: "Provider 7", planName: "Plan", price: "10.00", currency: "USD", billingCycle: "monthly", renewalDate: null, viewingIntent: "considering", status: "active" }]);
+    mockedDb.getWatchlist.mockResolvedValue([]);
+    const caller = appRouter.createCaller(contextFor(7));
+    const [catalogStatus, decisions] = await Promise.all([caller.catalog.status(), caller.decisions.get()]);
+    expect(catalogStatus).toEqual({ configured: expect.any(Boolean), provider: "TMDb / JustWatch" });
+    expect(decisions[0]).not.toHaveProperty("community");
+    expect(JSON.stringify(decisions)).not.toContain("Community-only lead");
+    expect(mockedDb.getCommunityPosts).not.toHaveBeenCalled();
   });
 });

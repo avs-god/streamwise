@@ -43,7 +43,14 @@
 - [x] Add report/flag workflows, moderation statuses, contributor-consent fields, and public visibility controls without fabricating user reviews or observations.
 - [x] Keep every community contribution explicitly unverified and permanently excluded from verified catalog availability, alerts, tracking, and subscription-decision logic.
 - [x] Build accessible community browsing, filtering, contribution, and report experiences with clear data/provenance limitations.
-- [ ] Add tests for community data isolation, moderation/reporting controls, contribution validation, and fact-separation rules.
+- [x] Add tests for community data isolation, moderation/reporting controls, contribution validation, and fact-separation rules.
+- [x] Add automated validation-failure tests for malformed community posts, threads, replies, and reports.
+- [x] Add admin-moderation and public-visibility filtering tests for hidden or removed community content.
+- [x] Add explicit regression tests proving community content cannot become verified catalog evidence or access private member data.
+- [x] Add behavioral public-query tests excluding hidden and removed posts, threads, replies, and reviews.
+- [x] Add isolated invalid-payload coverage for both community post and thread report procedures.
+- [x] Assert community public-query outputs exclude private member identifiers and catalog or decision outputs ignore community data.
+- [x] Remove internal member identifiers from public community post, thread, and reply responses and add behavioral privacy regression tests.
 - [ ] Verify community and AI workflows across loading, error, signed-in, responsive, keyboard, type, test, and production build states.
 - [x] Add typo-tolerant title interpretation so common misspellings resolve to likely catalog titles before research leads are shown.
 - [x] Present verified, country-specific provider, rental, purchase, and ad-supported offer results prominently for a resolved title, with source and retrieval timestamp.
