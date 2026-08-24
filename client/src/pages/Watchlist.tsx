@@ -1,0 +1,37 @@
+import { useAuth } from "@/_core/hooks/useAuth";
+import AppFrame from "@/components/AppFrame";
+import { PrivacyNote } from "@/components/ConnectionNotice";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { parseProviderNames } from "@/lib/streamwise";
+import { trpc } from "@/lib/trpc";
+import { Bookmark, CalendarClock, CircleUserRound, ExternalLink, Trash2 } from "lucide-react";
+import { Link } from "wouter";
+import { toast } from "sonner";
+
+const intentLabel = { this_week: "This week", this_month: "This month", someday: "Later" } as const;
+
+export default function Watchlist() {
+  const { user, loading } = useAuth();
+  const utils = trpc.useUtils();
+  const list = trpc.watchlist.list.useQuery(undefined, { enabled: Boolean(user), retry: false });
+  const setIntent = trpc.watchlist.setIntent.useMutation({
+    onMutate: async input => { await utils.watchlist.list.cancel(); const before = utils.watchlist.list.getData(); utils.watchlist.list.setData(undefined, current => current?.map(item => item.id === input.id ? { ...item, plannedFor: input.plannedFor } : item)); return { before }; },
+    onError: (error, _input, context) => { utils.watchlist.list.setData(undefined, context?.before); toast.error(error.message); },
+    onSettled: () => utils.watchlist.list.invalidate(),
+  });
+  const remove = trpc.watchlist.remove.useMutation({ onSuccess: () => { utils.watchlist.list.invalidate(); toast.success("Removed from your watchlist."); }, onError: error => toast.error(error.message) });
+  const setNote = trpc.watchlist.setNote.useMutation({ onSuccess: () => { utils.watchlist.list.invalidate(); toast.success("Note saved."); }, onError: error => toast.error(error.message) });
+
+  return <AppFrame><main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:py-14">
+    <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><p className="eyebrow">Your saved viewing</p><h1 className="serif mt-2 text-4xl tracking-[-0.045em] text-[#214a3a] sm:text-5xl">The watchlist with a point of view.</h1><p className="mt-3 max-w-2xl leading-7 text-[#63756e]">Set a realistic viewing horizon for each title. Streamwise uses the latest saved provider snapshot—not an assumed catalog match—when it explains what a subscription unlocks.</p></div><Link href="/" className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#bfcfc3] bg-[#fbfaf5] px-4 py-2.5 text-sm font-bold text-[#275a46] hover:bg-[#edf3ed]">Find a title <ExternalLink className="size-3.5" /></Link></div>
+    {!loading && !user ? <SignedOutState /> : list.isLoading ? <div className="mt-9 grid gap-4 md:grid-cols-2">{Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-52 rounded-2xl" />)}</div> : list.error ? <div className="mt-9 rounded-2xl border border-[#e0b9a7] bg-[#fbede6] p-5 text-sm text-[#8a4b2c]">Your watchlist could not be loaded. Nothing has been changed—please try again.</div> : list.data?.length ? <div className="mt-9 grid gap-4 md:grid-cols-2">{list.data.map(item => { const providers = parseProviderNames(item.providerNamesJson); return <article key={item.id} className="rounded-2xl border border-[#d8d0c0] bg-[#fcfaf4] p-5 shadow-[0_5px_18px_rgba(36,64,51,.045)]"><div className="flex items-start justify-between gap-4"><div><Badge className="bg-[#e6dec8] text-[#59613d] hover:bg-[#e6dec8]">{item.mediaType === "movie" ? "Film" : "Series"}</Badge><h2 className="serif mt-3 text-2xl leading-tight text-[#214938]">{item.title}</h2>{item.releaseDate && <p className="mt-1 text-sm text-[#74847c]">{item.releaseDate.slice(0, 4)}</p>}</div><button title={`Remove ${item.title}`} onClick={() => remove.mutate({ id: item.id })} className="rounded-lg p-2 text-[#7d8c85] hover:bg-[#f5e8df] hover:text-[#a74e32]" disabled={remove.isPending}><Trash2 className="size-4" /></button></div><div className="mt-5 flex flex-wrap gap-1.5">{providers.length ? providers.map(provider => <span key={provider} className="rounded-full border border-[#dcd5c6] bg-white px-2.5 py-1 text-xs text-[#476257]">{provider}</span>) : <span className="text-xs text-[#7b8782]">No provider snapshot saved.</span>}</div><div className="mt-5 grid gap-3 border-t border-[#e5dfd1] pt-4 sm:grid-cols-[1fr_auto]"><div><p className="mono text-[0.62rem] uppercase tracking-[0.1em] text-[#74857d]">Availability snapshot</p><p className="mt-1 text-xs leading-5 text-[#5e736a]">{item.availabilityCheckedAt ? `Checked ${new Date(item.availabilityCheckedAt).toLocaleString()}` : "No timestamp available"}</p></div><Select value={item.plannedFor} onValueChange={value => setIntent.mutate({ id: item.id, plannedFor: value as keyof typeof intentLabel })}><SelectTrigger className="h-9 bg-white text-xs sm:w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="this_week">This week</SelectItem><SelectItem value="this_month">This month</SelectItem><SelectItem value="someday">Later</SelectItem></SelectContent></Select></div><div className="mt-4"><label htmlFor={`note-${item.id}`} className="mono text-[0.62rem] uppercase tracking-[0.1em] text-[#74857d]">Private note</label><Textarea id={`note-${item.id}`} defaultValue={item.note ?? ""} onBlur={event => { const note = event.currentTarget.value.trim(); if (note !== (item.note ?? "")) setNote.mutate({ id: item.id, note: note || null }); }} placeholder="Why you saved this, who you plan to watch with, or a reminder…" className="mt-1 min-h-18 resize-y border-[#dcd5c6] bg-white/80 text-sm placeholder:text-[#9aa69f]" maxLength={1000} /></div></article>; })}</div> : <EmptyState />}
+    <div className="mt-8"><PrivacyNote /></div>
+  </main></AppFrame>;
+}
+
+function SignedOutState() { return <div className="mt-9 rounded-3xl border border-dashed border-[#c9c0ae] bg-[#faf8f1]/70 p-9 text-center"><CircleUserRound className="mx-auto size-8 text-[#6b8479]" /><h2 className="serif mt-4 text-2xl text-[#315343]">Make this list yours.</h2><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#65776f]">Sign in to save viewing intent and provider snapshots privately to your own profile.</p></div>; }
+function EmptyState() { return <div className="mt-9 rounded-3xl border border-dashed border-[#c9c0ae] bg-[#faf8f1]/70 p-9 text-center"><Bookmark className="mx-auto size-8 text-[#6b8479]" /><h2 className="serif mt-4 text-2xl text-[#315343]">Nothing saved yet.</h2><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#65776f]">When a title has a live legal-availability snapshot, save it here and choose when you expect to watch it.</p><Link href="/" className="mt-5 inline-flex items-center gap-1 rounded-full bg-[#1e4a3a] px-4 py-2.5 text-sm font-semibold text-[#fbf8ee]">Discover titles <ExternalLink className="size-3.5" /></Link></div>; }
