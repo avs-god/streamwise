@@ -14,6 +14,7 @@ import {
   getAlertPreferences,
   getAlerts,
   getCommunityPosts,
+  getCommunityThreadReports,
   getCommunityThreads,
   getThreadReplies,
   getCommunityReports,
@@ -94,6 +95,7 @@ export const appRouter = router({
     reportThread: protectedProcedure.input(z.object({ threadId: z.number().int().positive(), replyId: z.number().int().positive().nullable().optional(), reason: z.enum(["spoiler", "misleading", "spam", "abuse", "privacy", "other"]), detail: z.string().trim().max(500).nullable().optional() })).mutation(async ({ ctx, input }) => { await reportCommunityThread(ctx.user.id, { ...input, replyId: input.replyId ?? null, detail: input.detail ?? null }); return { success: true }; }),
     moderation: router({
       reports: adminProcedure.query(() => getCommunityReports()),
+      threadReports: adminProcedure.query(() => getCommunityThreadReports()),
       setStatus: adminProcedure.input(z.object({ postId: z.number().int().positive(), status: z.enum(["visible", "hidden", "removed"]) })).mutation(async ({ input }) => { await setCommunityPostStatus(input.postId, input.status); return { success: true }; }),
       setThreadStatus: adminProcedure.input(z.object({ threadId: z.number().int().positive(), status: z.enum(["visible", "hidden", "removed"]) })).mutation(async ({ input }) => { await setCommunityThreadStatus(input.threadId, input.status); return { success: true }; }),
     }),
