@@ -112,6 +112,7 @@ export const communityPosts = mysqlTable(
   {
     id: int("id").autoincrement().primaryKey(),
     userId: int("userId").notNull(),
+    tmdbId: int("tmdbId"),
     title: varchar("title", { length: 500 }).notNull(),
     mediaType: mysqlEnum("mediaType", ["movie", "tv", "unknown"]).default("unknown").notNull(),
     region: varchar("region", { length: 2 }).notNull(),
@@ -125,6 +126,20 @@ export const communityPosts = mysqlTable(
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
   table => [index("community_posts_visible_created_idx").on(table.status, table.createdAt), index("community_posts_region_kind_idx").on(table.region, table.kind)],
+);
+
+export const communityTitleRatings = mysqlTable(
+  "communityTitleRatings",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    tmdbId: int("tmdbId").notNull(),
+    mediaType: mysqlEnum("mediaType", ["movie", "tv"]).notNull(),
+    rating: int("rating").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [uniqueIndex("community_title_rating_member_unique").on(table.userId, table.tmdbId, table.mediaType), index("community_title_rating_title_idx").on(table.tmdbId, table.mediaType)],
 );
 
 export const communityReports = mysqlTable(

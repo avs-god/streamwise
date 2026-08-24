@@ -31,4 +31,12 @@ describe("keyboard and semantic-accessibility regression checks", () => {
     expect(titleDialog).toContain("<Dialog");
     expect(titleDialog).toContain("<Select");
   });
+
+  it("keeps distinct source-category labels separate from catalog evidence", () => {
+    const panel = source("client/src/components/AiResearchPanel.tsx");
+    expect(panel).toContain("Critic / film reading");
+    expect(panel).toContain("Reporting / reference");
+    expect(panel).toContain("Unverified discussion");
+    expect(panel).toContain("never used as availability, alert, tracking, or recommendation evidence");
+  });
 });

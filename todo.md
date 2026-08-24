@@ -73,7 +73,7 @@
 - [ ] Add a unified-intelligence explanation that distinguishes a member’s consented signals, public community aggregates, and public unverified discussion without profiling private community activity.
 - [ ] Make verified country-specific “Where to stream” provider names and offer types the visually primary field on every catalog-backed search, recommendation, and title card.
 - [ ] Add source-boundary and accessibility tests for consented viewing signals, aggregate-only community context, and prominent provider availability states.
-- [ ] Add source-colour-coded public-web, critic, and public-discussion tags with attribution, explicit evidence level, and a strict unverified-context boundary.
+- [x] Add source-colour-coded public-web, critic, and public-discussion tags with attribution, explicit evidence level, and a strict unverified-context boundary.
 - [ ] Research official or licensed catalog/integration paths for major streaming providers and document which sources can support direct availability data versus outbound reference links only.
 - [ ] Ensure verified country-specific “Where to stream” data remains visually and semantically dominant over all public-web and discussion tags.
 - [ ] Verify the published scheduled callback accepts only its persisted cron identity and reports `catalogConfigured:false` safely when no catalog token is configured.
@@ -91,3 +91,6 @@
 - [ ] Link discussion threads to catalog title IDs from provider-first title details or discovery cards rather than relying only on free-text titles.
 - [ ] Add reply-to-reply controls and nested reply rendering using parentReplyId, with behavioral tests for the nested conversation flow.
 - [ ] Verify title-context thread creation, nested reply, reporting, and moderation interactions in browser-level coverage.
+- [x] Improve simple movie or series public-web queries so the AI context attempts useful source-linked reading and discussion leads before presenting an insufficient-evidence fallback.
+- [x] Replace the generic insufficient-evidence text with a constructive fallback that preserves source boundaries and directs users to verified country-specific offers for actual availability.
+- [x] Add tests for simple “where to watch” wording, useful source-link retention, and exclusion of unverified leads from legal provider facts.

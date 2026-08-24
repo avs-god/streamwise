@@ -37,6 +37,13 @@ describe("AI discovery provenance", () => {
     expect(result.sources).toEqual([]);
     expect(result.communitySources).toEqual([]);
   });
+  it("keeps inspectable links for a simple where-to-watch wording even when the model returns an insufficient status", async () => {
+    mockedLlm.invokeLLM.mockResolvedValueOnce({ choices: [{ message: { content: JSON.stringify({ status: "insufficient", summary: "No concise summary was found." }), metadata: { source_citations: [{ title: "Film guide", url: "https://film.example/2012-guide" }] } } }] });
+    const result = await researchDiscoveryLead({ query: "where to watch 2012 movie", region: "IN", language: "en-IN" });
+    expect(result.status).toBe("lead");
+    expect(result.sources).toHaveLength(1);
+    expect(result.summary).toMatch(/context, not current availability/i);
+  });
   it("strips inline citation URLs from summaries", () => { expect(cleanSummary("Read [this](https://example.com) now.")).toBe("Read this now."); });
   it("keeps community discussion visibly separate in the consumer UI", () => {
     const panel = readFileSync(resolve(process.cwd(), "client/src/components/AiResearchPanel.tsx"), "utf8");
