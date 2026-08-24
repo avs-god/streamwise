@@ -94,3 +94,5 @@
 - [x] Improve simple movie or series public-web queries so the AI context attempts useful source-linked reading and discussion leads before presenting an insufficient-evidence fallback.
 - [x] Replace the generic insufficient-evidence text with a constructive fallback that preserves source boundaries and directs users to verified country-specific offers for actual availability.
 - [x] Add tests for simple “where to watch” wording, useful source-link retention, and exclusion of unverified leads from legal provider facts.
+- [x] Build the final distribution and start the generated server outside the development watcher using production environment configuration.
+- [x] Exercise a standalone HTTP request against the production server, verify static assets and core route fallback, and document required runtime configuration plus optional catalog-token behavior.

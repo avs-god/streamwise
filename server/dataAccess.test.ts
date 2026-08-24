@@ -116,7 +116,7 @@ describe("private profile data access", () => {
     await caller.community.contribute(post);
     await caller.community.report({ postId: 12, reason: "misleading", detail: "Needs a source check." });
 
-    expect(mockedDb.createCommunityPost).toHaveBeenCalledWith(7, post);
+    expect(mockedDb.createCommunityPost).toHaveBeenCalledWith(7, { ...post, tmdbId: null });
     expect(mockedDb.reportCommunityPost).toHaveBeenCalledWith(7, 12, { reason: "misleading", detail: "Needs a source check." });
   });
 

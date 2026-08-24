@@ -9,6 +9,7 @@ import {
   communityThreadReplies,
   communityThreadReports,
   communityThreads,
+  communityTitleRatings,
   InsertUser,
   scheduledJobs,
   subscriptionActions,
@@ -201,6 +202,7 @@ export async function applySubscriptionAction(userId: number, subscriptionId: nu
 }
 
 export type CommunityPostInput = {
+  tmdbId?: number | null;
   title: string;
   mediaType: "movie" | "tv" | "unknown";
   region: string;
@@ -285,4 +287,26 @@ export async function setCommunityThreadStatus(threadId: number, status: "visibl
 export async function getCommunityThreadReports() {
   const db = await getDb(); if (!db) return [];
   return db.select().from(communityThreadReports).where(eq(communityThreadReports.status, "open")).orderBy(desc(communityThreadReports.createdAt)).limit(100);
+}
+
+export async function setCommunityTitleRating(userId: number, input: { tmdbId: number; mediaType: "movie" | "tv"; rating: number }) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  await db.insert(communityTitleRatings).values({ userId, ...input }).onDuplicateKeyUpdate({ set: { rating: input.rating } });
+}
+
+export function summarizeCommunityRatings(values: number[]) {
+  if (!values.length) return { count: 0, average: null as number | null };
+  return { count: values.length, average: Math.round((values.reduce((total, value) => total + value, 0) / values.length) * 10) / 10 };
+}
+
+export async function getCommunityTitleRatingSummary(input: { tmdbId: number; mediaType: "movie" | "tv" }) {
+  const db = await getDb(); if (!db) return { count: 0, average: null as number | null };
+  const rows = await db.select({ rating: communityTitleRatings.rating }).from(communityTitleRatings).where(and(eq(communityTitleRatings.tmdbId, input.tmdbId), eq(communityTitleRatings.mediaType, input.mediaType)));
+  return summarizeCommunityRatings(rows.map(row => row.rating));
+}
+
+export async function getCommunityTitleReviews(input: { tmdbId: number; mediaType: "movie" | "tv" }) {
+  const db = await getDb(); if (!db) return [];
+  const rows = await db.select({ post: communityPosts, contributorName: users.name }).from(communityPosts).leftJoin(users, eq(communityPosts.userId, users.id)).where(and(eq(communityPosts.tmdbId, input.tmdbId), eq(communityPosts.mediaType, input.mediaType), eq(communityPosts.kind, "review"), eq(communityPosts.status, "visible"))).orderBy(desc(communityPosts.createdAt)).limit(60);
+  return rows.map(({ post, contributorName }) => ({ ...post, contributorName: post.shareAttribution ? contributorName ?? "Streamwise member" : null }));
 }
