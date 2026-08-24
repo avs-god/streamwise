@@ -21,3 +21,9 @@ After the provider-first card and title-source-boundary updates, the full suite 
 Signed-in desktop Watchlist validation confirmed the empty private-library state remains clear and responsive without creating a title or watched record. The explicit watched-record interaction and retry path are covered by the dedicated jsdom component test instead of manufacturing member history.
 
 After the private-signal and title-control interaction additions, the full suite passed with 16 files and 72 tests, plus keyboard browser validation, TypeScript, and the production build. A fresh standalone server returned HTTP 200 for `/`, `/watchlist`, `/recommendations`, `/title/movie/1`, `/community`, and the compiled client asset before it was stopped.
+
+## Current uncheckpointed release verification
+
+After the provider-hierarchy, title-discussion-link, review-report action, and original-problem audit updates, the complete release suite passed with **17 Vitest files / 76 tests**, one Playwright keyboard route-and-labelled-discovery test, TypeScript checking, and the production build. Vite emitted only its existing non-fatal bundle-size advisory.
+
+The compiled app was then started with `NODE_ENV=production PORT=4173 pnpm start`, independent of the development watcher. HTTP `200` responses were confirmed for `/`, `/watchlist`, `/recommendations`, `/title/movie/1`, `/community`, and the emitted JavaScript asset. The temporary standalone process was stopped after the check. The absent `TMDB_ACCESS_TOKEN` remains intentionally visible as candid catalog standby behavior; this verification does not claim an authenticated browser mutation or a live managed-Heartbeat callback.

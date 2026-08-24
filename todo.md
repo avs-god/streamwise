@@ -63,7 +63,8 @@
 - [x] Expand community browsing with filters, contribution guidance, review/recommendation and title-observation flows, contributor consent, source links, and report actions.
 - [x] Add a privacy-scoped assistant/chatbot that uses only a signed-in member’s explicit question and saved Streamwise data, explains its inputs, and does not invent catalog facts.
 - [x] Add an accessible home-page article popup explaining the original consumer problem, the product’s response, and the source/data limitations.
-- [ ] Verify all original problem themes—title discovery, platform churn, leaving-soon uncertainty, subscription sprawl, cancellation friction, and legal alternatives—are addressed in the working product.
+- [x] Verify all original problem themes—title discovery, platform churn, leaving-soon uncertainty, subscription sprawl, cancellation friction, and legal alternatives—are addressed in the working product.
+- [x] Review the problem-to-feature audit against Discovery, tracking, Community leaving-soon leads, Wallet decisions, provider guidance, and legal alternatives before closing the original-problem verification.
 - [ ] Complete type, unit, integration, browser, responsive, accessibility, and production-build validation for all new workflows.
 - [x] Refine the expanded mobile navigation so each destination remains legible and keyboard reachable without compressed labels.
 - [x] Add an idempotent, cron-authenticated project refresh endpoint that processes opt-in renewal reminders and observed availability checks without using in-process timers.
@@ -77,7 +78,7 @@
 - [x] Add behavioral title-page coverage for source-specific outbound IMDb, Rotten Tomatoes, and critic labels in configured and no-catalog states.
 - [x] Add a behavioral no-catalog title-route test asserting outbound references are explicitly unavailable until catalog resolution.
 - [x] Audit every external review and rating surface for the same source-specific unavailable-state wording and licensed timestamp boundary.
-- [ ] Add automated tests for deterministic recommendation inputs, rating aggregation, review validation, fact separation, and accessible title-detail workflows.
+- [x] Add automated tests for deterministic recommendation inputs, rating aggregation, review validation, fact separation, and accessible title-detail workflows.
 - [x] Add explicit deterministic discovery tests for popular, top-rated, genre, similar, private post-watch, and adaptation-disclosure modes.
 - [x] Add explicit title/community review validation and moderation-visibility tests without seeding review content.
 - [ ] Validate search, recommendation, title-detail, rating, review, responsive, keyboard, type, test, and production-build flows.
@@ -108,8 +109,8 @@
 - [x] Add member-only report actions for individual thread replies using the existing private moderation workflow.
 - [x] Keep discussion threads categorically separate from verified streaming availability, alerts, tracking, deterministic recommendations, and private member profiling.
 - [ ] Add accessibility, data-isolation, validation, and browser coverage for title details, ratings, reviews, threads, replies, reports, moderation, and spoiler notices.
-- [ ] Verify the public preview hierarchy for discovery, title-detail, community-review, critic-source, related-title, and no-catalog states without fabricating live data.
-- [ ] Link discussion threads to catalog title IDs from provider-first title details or discovery cards rather than relying only on free-text titles.
+- [x] Verify the public preview hierarchy for discovery, title-detail, community-review, critic-source, related-title, and no-catalog states without fabricating live data.
+- [x] Link discussion threads to catalog title IDs from provider-first title details or discovery cards rather than relying only on free-text titles.
 - [x] Auto-open the signed-in thread composer once for a valid title-linked Community deep link and visibly preserve its catalog context.
 - [x] Add reply-to-reply controls and nested reply rendering using parentReplyId, with behavioral tests for the nested conversation flow.
 - [x] Add and run a nested-reply regression covering parent selection, child submission with parentReplyId, and nested rendering order.
@@ -123,3 +124,4 @@
 - [x] Exercise a standalone HTTP request against the production server, verify static assets and core route fallback, and document required runtime configuration plus optional catalog-token behavior.
 - [x] Add visible per-review report controls on the title-page community review list and wire them to the existing community report workflow.
 - [ ] Add regression and browser coverage for title-page review reporting and moderation visibility states.
+- [x] Add a fixture-free title-review report-action regression that targets the supplied review ID without seeding review content.

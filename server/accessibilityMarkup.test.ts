@@ -173,4 +173,40 @@ describe("keyboard and semantic-accessibility regression checks", () => {
     expect(recommendations).toContain("complete, licensed");
     expect(recommendations).toContain('aria-expanded={adaptationNoticeOpen}');
   });
+
+  it("preserves the public provider-first hierarchy without inventing a live catalog", () => {
+    const home = source("client/src/pages/Home.tsx");
+    const title = source("client/src/pages/TitlePage.tsx");
+    const community = source("client/src/pages/Community.tsx");
+    expect(home).toContain('aria-label="Verified legal catalog results"');
+    expect(home).toContain("AI public-web context");
+    const populatedBranch = title.slice(title.indexOf("<LegalOfferPanel"));
+    expect(populatedBranch.indexOf("<LegalOfferPanel")).toBeLessThan(populatedBranch.indexOf("<ExternalReferencePanel"));
+    expect(populatedBranch.indexOf("<ExternalReferencePanel")).toBeLessThan(populatedBranch.indexOf("<TitleCommunity"));
+    expect(populatedBranch.indexOf("<TitleCommunity")).toBeLessThan(populatedBranch.indexOf("<RelatedTitleGrid"));
+    expect(title).toContain("Legal catalog is safely on standby.");
+    expect(community).toContain("Movie-buff threads");
+    expect(community).toContain("unverified leads");
+  });
+
+  it("maps the original consumer problems to implemented product surfaces and candid catalog limits", () => {
+    const audit = source("problem_coverage.md");
+    const watchlist = source("client/src/pages/Watchlist.tsx");
+    const community = source("client/src/pages/Community.tsx");
+    const recommendations = source("client/src/pages/Recommendations.tsx");
+    const title = source("client/src/pages/TitlePage.tsx");
+    const decisions = source("client/src/pages/Decisions.tsx");
+    expect(audit).toContain("Fragmented title discovery");
+    expect(audit).toContain("Country-specific platform churn");
+    expect(audit).toContain("Leaving-soon uncertainty");
+    expect(audit).toContain("Subscription sprawl and cost ambiguity");
+    expect(audit).toContain("Cancellation friction");
+    expect(audit).toContain("Need for legal alternatives");
+    expect(watchlist).toContain("Track observed changes");
+    expect(community).toContain("Leaving-soon lead");
+    expect(recommendations).toContain("Private post-watch picks");
+    expect(title).toContain("Where to stream");
+    expect(decisions).toContain("cancel candidate");
+    expect(audit).toContain("require a permitted server-side credential");
+  });
 });
