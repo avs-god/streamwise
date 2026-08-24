@@ -1,0 +1,2 @@
+ALTER TABLE `alerts` MODIFY COLUMN `type` enum('availability_changed','renewal_due','pause_review','subscription_action') NOT NULL;--> statement-breakpoint
+ALTER TABLE `alertPreferences` ADD `pauseRemindersEnabled` boolean DEFAULT false NOT NULL;

@@ -9,6 +9,7 @@ export type RecommendationSubscription = {
   billingCycle: "monthly" | "quarterly" | "yearly";
   renewalDate: Date | null;
   viewingIntent: "watch_now" | "considering" | "keep";
+  status?: "active" | "paused" | "cancellation_planned" | "cancelled";
 };
 
 export type RecommendationWatchlistItem = {
@@ -59,7 +60,7 @@ export function buildSubscriptionDecisions(
   watchlist: RecommendationWatchlistItem[],
   now = new Date(),
 ): SubscriptionDecision[] {
-  return subscriptions.map(subscription => {
+  return subscriptions.filter(subscription => subscription.status !== "cancelled").map(subscription => {
     const unlocks = watchlist
       .filter(item => item.providerNames.some(name => providerNamesMatch(name, subscription.providerName)))
       .map(item => ({ title: item.title, plannedFor: item.plannedFor }));

@@ -17,3 +17,13 @@
 - [x] Verify keyboard navigation and dialog/form interaction across primary consumer workflows.
 - [x] Add and run browser-driven keyboard interaction checks for route navigation, labelled form controls, and dialog focus/escape behavior.
 - [x] Expand browser-driven keyboard checks for dialog focus trapping, focus return, and the country selector control.
+- [x] Research public consumer discussions and authoritative availability-data documentation without collecting personal user data.
+- [x] Expand legal title discovery to clearly compare streaming, free/ad-supported, rental, and purchase choices with snapshot provenance.
+- [x] Add per-title availability-change tracking that detects provider and offer-category changes from saved snapshots.
+- [x] Add user-controlled, opt-in alert preferences for watched-title availability and subscription-renewal changes, with clear consent and limitations.
+- [x] Expand subscription management with status, cancellation/renewal action tracking, pause reminders, and a unified upcoming-actions view.
+- [x] Add notification delivery infrastructure only after explicit user opt-in, with reliable in-app fallback states.
+- [x] Add automated tests for change detection, alert preferences, and the expanded subscription-management rules.
+- [x] Verify the expanded discovery, tracking, and management experience across desktop, mobile, and keyboard workflows.
+- [x] Add opt-in pause-review reminders with user-entered follow-up dates and private in-app delivery.
+- [x] Verify the title dialog’s save-with-tracking flow and signed-in tracking, alert, and pause-reminder states with browser-driven tests or authenticated visual checks.

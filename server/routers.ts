@@ -1,18 +1,32 @@
 import { z } from "zod";
 import { COOKIE_NAME } from "@shared/const";
 import { providerGuides } from "../shared/providers";
+import { offersFingerprint, normalizeOffers } from "./availabilityTracking";
 import {
+  addAvailabilitySnapshot,
   addSubscription,
   addWatchlistItem,
+  applySubscriptionAction,
+  createAlert,
+  getAlertPreferences,
+  getAlerts,
+  getSnapshotHistory,
+  getSubscriptionActions,
   getSubscriptions,
   getWatchlist,
+  markAlertRead,
+  markAllAlertsRead,
   removeSubscription,
   removeWatchlistItem,
-  updateWatchlistNote,
+  updateAlertPreferences,
   updateSubscription,
   updateWatchlistIntent,
+  updateWatchlistMonitoring,
+  updateWatchlistNote,
 } from "./db";
 import { getCatalogDetail, isCatalogConfigured, searchCatalog } from "./catalog";
+import { refreshTrackedTitle, refreshTrackedTitlesForUser } from "./trackingService";
+import { syncRenewalAlerts } from "./alertService";
 import { buildSubscriptionDecisions } from "./recommendations";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -21,112 +35,77 @@ import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 const plannedFor = z.enum(["this_week", "this_month", "someday"]);
 const billingCycle = z.enum(["monthly", "quarterly", "yearly"]);
 const viewingIntent = z.enum(["watch_now", "considering", "keep"]);
-
+const lifecycleAction = z.enum(["paused", "resumed", "cancellation_planned", "cancelled"]);
 const subscriptionInput = z.object({
-  providerName: z.string().trim().min(1).max(150),
-  planName: z.string().trim().min(1).max(150),
-  price: z.number().finite().nonnegative().max(1_000_000),
-  currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/),
-  billingCycle,
-  renewalDate: z.coerce.date().nullable(),
-  viewingIntent,
+  providerName: z.string().trim().min(1).max(150), planName: z.string().trim().min(1).max(150),
+  price: z.number().finite().nonnegative().max(1_000_000), currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/),
+  billingCycle, renewalDate: z.coerce.date().nullable(), viewingIntent,
 });
+const snapshotOffer = z.object({ id: z.number().int().positive(), name: z.string().trim().min(1).max(150), type: z.enum(["stream", "ads", "free", "rent", "buy"]) });
 
 export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
-    logout: publicProcedure.mutation(({ ctx }) => {
-      ctx.res.clearCookie(COOKIE_NAME, { ...getSessionCookieOptions(ctx.req), maxAge: -1 });
-      return { success: true } as const;
-    }),
+    logout: publicProcedure.mutation(({ ctx }) => { ctx.res.clearCookie(COOKIE_NAME, { ...getSessionCookieOptions(ctx.req), maxAge: -1 }); return { success: true } as const; }),
   }),
   catalog: router({
     status: publicProcedure.query(() => ({ configured: isCatalogConfigured(), provider: "TMDb / JustWatch" })),
-    search: publicProcedure
-      .input(z.object({ query: z.string().trim().min(2).max(120), language: z.string().default("en-US") }))
-      .query(({ input }) => searchCatalog(input)),
-    title: publicProcedure
-      .input(z.object({ id: z.number().int().positive(), mediaType: z.enum(["movie", "tv"]), region: z.string(), language: z.string().default("en-US") }))
-      .query(({ input }) => getCatalogDetail(input)),
+    search: publicProcedure.input(z.object({ query: z.string().trim().min(2).max(120), language: z.string().default("en-US") })).query(({ input }) => searchCatalog(input)),
+    title: publicProcedure.input(z.object({ id: z.number().int().positive(), mediaType: z.enum(["movie", "tv"]), region: z.string(), language: z.string().default("en-US") })).query(({ input }) => getCatalogDetail(input)),
   }),
-  providers: router({
-    list: publicProcedure.query(() => providerGuides),
-  }),
+  providers: router({ list: publicProcedure.query(() => providerGuides) }),
   watchlist: router({
     list: protectedProcedure.query(({ ctx }) => getWatchlist(ctx.user.id)),
-    add: protectedProcedure
-      .input(z.object({
-        tmdbId: z.number().int().positive(),
-        mediaType: z.enum(["movie", "tv"]),
-        title: z.string().trim().min(1).max(500),
-        posterPath: z.string().max(500).nullable().optional(),
-        releaseDate: z.string().max(16).nullable().optional(),
-        plannedFor,
-        note: z.string().trim().max(1000).nullable().optional(),
-        providerNames: z.array(z.string().trim().min(1).max(150)).max(100),
-        availabilityCheckedAt: z.coerce.date().nullable().optional(),
-        availabilitySourceUrl: z.string().url().max(1024).nullable().optional(),
-      }))
-      .mutation(async ({ ctx, input }) => {
-        await addWatchlistItem(ctx.user.id, {
-          ...input,
-          providerNamesJson: JSON.stringify(input.providerNames),
-          availabilityCheckedAt: input.availabilityCheckedAt ?? null,
-          availabilitySourceUrl: input.availabilitySourceUrl ?? null,
-        });
-        return { success: true };
-      }),
-    setIntent: protectedProcedure.input(z.object({ id: z.number().int().positive(), plannedFor })).mutation(async ({ ctx, input }) => {
-      await updateWatchlistIntent(ctx.user.id, input.id, input.plannedFor);
-      return { success: true };
+    add: protectedProcedure.input(z.object({
+      tmdbId: z.number().int().positive(), mediaType: z.enum(["movie", "tv"]), title: z.string().trim().min(1).max(500),
+      posterPath: z.string().max(500).nullable().optional(), releaseDate: z.string().max(16).nullable().optional(), plannedFor,
+      note: z.string().trim().max(1000).nullable().optional(), monitorAvailability: z.boolean().optional(), availabilityRegion: z.string().regex(/^[A-Z]{2}$/).optional(),
+      providerNames: z.array(z.string().trim().min(1).max(150)).max(100), offers: z.array(snapshotOffer).max(200).optional(),
+      availabilityCheckedAt: z.coerce.date().nullable().optional(), availabilitySourceUrl: z.string().url().max(1024).nullable().optional(),
+    })).mutation(async ({ ctx, input }) => {
+      const item = await addWatchlistItem(ctx.user.id, { ...input, providerNamesJson: JSON.stringify(input.providerNames), availabilityRegion: input.availabilityRegion ?? "US", availabilityCheckedAt: input.availabilityCheckedAt ?? null, availabilitySourceUrl: input.availabilitySourceUrl ?? null });
+      const normalizedOffers = normalizeOffers(input.offers ?? []);
+      if (item && normalizedOffers.length && input.availabilityCheckedAt) await addAvailabilitySnapshot({ watchlistItemId: item.id, region: input.availabilityRegion ?? "US", offersJson: JSON.stringify(normalizedOffers), fingerprint: offersFingerprint(normalizedOffers), sourceUrl: input.availabilitySourceUrl ?? null, checkedAt: input.availabilityCheckedAt });
+      return { success: true, id: item?.id ?? null };
     }),
-    setNote: protectedProcedure.input(z.object({ id: z.number().int().positive(), note: z.string().trim().max(1000).nullable() })).mutation(async ({ ctx, input }) => {
-      await updateWatchlistNote(ctx.user.id, input.id, input.note || null);
-      return { success: true };
-    }),
-    remove: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
-      await removeWatchlistItem(ctx.user.id, input.id);
-      return { success: true };
-    }),
+    setIntent: protectedProcedure.input(z.object({ id: z.number().int().positive(), plannedFor })).mutation(async ({ ctx, input }) => { await updateWatchlistIntent(ctx.user.id, input.id, input.plannedFor); return { success: true }; }),
+    setNote: protectedProcedure.input(z.object({ id: z.number().int().positive(), note: z.string().trim().max(1000).nullable() })).mutation(async ({ ctx, input }) => { await updateWatchlistNote(ctx.user.id, input.id, input.note || null); return { success: true }; }),
+    setMonitoring: protectedProcedure.input(z.object({ id: z.number().int().positive(), monitorAvailability: z.boolean() })).mutation(async ({ ctx, input }) => { await updateWatchlistMonitoring(ctx.user.id, input.id, input.monitorAvailability); return { success: true }; }),
+    history: protectedProcedure.input(z.object({ id: z.number().int().positive() })).query(({ ctx, input }) => getSnapshotHistory(ctx.user.id, input.id)),
+    refresh: protectedProcedure.input(z.object({ id: z.number().int().positive(), language: z.string().default("en-US") })).mutation(({ ctx, input }) => refreshTrackedTitle(ctx.user.id, input.id, input.language)),
+    refreshTracked: protectedProcedure.input(z.object({ language: z.string().default("en-US") })).mutation(({ ctx, input }) => refreshTrackedTitlesForUser(ctx.user.id, input.language)),
+    remove: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => { await removeWatchlistItem(ctx.user.id, input.id); return { success: true }; }),
+  }),
+  alerts: router({
+    preferences: protectedProcedure.query(({ ctx }) => getAlertPreferences(ctx.user.id)),
+    updatePreferences: protectedProcedure.input(z.object({ availabilityChangesEnabled: z.boolean(), renewalRemindersEnabled: z.boolean(), pauseRemindersEnabled: z.boolean(), renewalLeadDays: z.number().int().min(1).max(60), inAppEnabled: z.boolean() })).mutation(({ ctx, input }) => updateAlertPreferences(ctx.user.id, input)),
+    list: protectedProcedure.query(async ({ ctx }) => { await syncRenewalAlerts(ctx.user.id); return getAlerts(ctx.user.id); }),
+    markRead: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => { await markAlertRead(ctx.user.id, input.id); return { success: true }; }),
+    markAllRead: protectedProcedure.mutation(async ({ ctx }) => { await markAllAlertsRead(ctx.user.id); return { success: true }; }),
   }),
   subscriptions: router({
     list: protectedProcedure.query(({ ctx }) => getSubscriptions(ctx.user.id)),
-    add: protectedProcedure.input(subscriptionInput).mutation(async ({ ctx, input }) => {
-      await addSubscription(ctx.user.id, { ...input, price: input.price.toFixed(2) });
+    activity: protectedProcedure.query(({ ctx }) => getSubscriptionActions(ctx.user.id)),
+    add: protectedProcedure.input(subscriptionInput).mutation(async ({ ctx, input }) => { await addSubscription(ctx.user.id, { ...input, price: input.price.toFixed(2) }); return { success: true }; }),
+    update: protectedProcedure.input(subscriptionInput.extend({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => { const { id, ...rest } = input; await updateSubscription(ctx.user.id, id, { ...rest, price: rest.price.toFixed(2) }); return { success: true }; }),
+    action: protectedProcedure.input(z.object({ id: z.number().int().positive(), actionType: lifecycleAction, note: z.string().trim().max(1000).nullable().optional(), pauseUntil: z.coerce.date().nullable().optional() })).mutation(async ({ ctx, input }) => {
+      await applySubscriptionAction(ctx.user.id, input.id, input.actionType, input.note ?? null, input.pauseUntil ?? null);
+      const preferences = await getAlertPreferences(ctx.user.id);
+      if (preferences.inAppEnabled) await createAlert({ userId: ctx.user.id, type: "subscription_action", title: "Subscription status updated", body: `You marked a subscription as ${input.actionType.replace(/_/g, " ")}.`, payloadJson: JSON.stringify({ subscriptionId: input.id, actionType: input.actionType }) });
       return { success: true };
     }),
-    update: protectedProcedure.input(subscriptionInput.extend({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
-      const { id, ...rest } = input;
-      await updateSubscription(ctx.user.id, id, { ...rest, price: rest.price.toFixed(2) });
-      return { success: true };
-    }),
-    remove: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
-      await removeSubscription(ctx.user.id, input.id);
-      return { success: true };
-    }),
+    remove: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => { await removeSubscription(ctx.user.id, input.id); return { success: true }; }),
   }),
   decisions: router({
     get: protectedProcedure.query(async ({ ctx }) => {
       const [wallet, watchlist] = await Promise.all([getSubscriptions(ctx.user.id), getWatchlist(ctx.user.id)]);
-      const normalizedWatchlist = watchlist.map(item => ({
-        ...item,
-        providerNames: parseProviderNames(item.providerNamesJson),
-        availabilityCheckedAt: item.availabilityCheckedAt,
-      }));
+      const normalizedWatchlist = watchlist.map(item => ({ ...item, providerNames: parseProviderNames(item.providerNamesJson), availabilityCheckedAt: item.availabilityCheckedAt }));
       const normalizedSubscriptions = wallet.map(item => ({ ...item, price: Number(item.price) }));
       return buildSubscriptionDecisions(normalizedSubscriptions, normalizedWatchlist);
     }),
   }),
 });
 
-function parseProviderNames(raw: string) {
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : [];
-  } catch {
-    return [];
-  }
-}
-
+function parseProviderNames(raw: string) { try { const parsed = JSON.parse(raw); return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : []; } catch { return []; } }
 export type AppRouter = typeof appRouter;

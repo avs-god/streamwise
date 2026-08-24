@@ -77,4 +77,10 @@ describe("transparent subscription decisions", () => {
     expect(result.decision).toBe("pause");
     expect(result.summary).toContain("lower-priority");
   });
+
+  it("excludes subscriptions the user has already marked cancelled", () => {
+    const results = buildSubscriptionDecisions([subscription({ status: "cancelled" })], [title()], now);
+
+    expect(results).toEqual([]);
+  });
 });

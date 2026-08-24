@@ -6,6 +6,7 @@ import Home from "@/pages/Home";
 import ProviderPage from "@/pages/ProviderPage";
 import Wallet from "@/pages/Wallet";
 import Watchlist from "@/pages/Watchlist";
+import Updates from "@/pages/Updates";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/watchlist" component={Watchlist} />
       <Route path="/wallet" component={Wallet} />
       <Route path="/decisions" component={Decisions} />
+      <Route path="/updates" component={Updates} />
       <Route path="/providers/:slug" component={ProviderPage} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />

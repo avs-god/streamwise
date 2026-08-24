@@ -1,18 +1,22 @@
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, subscriptions, users, watchlistItems } from "../drizzle/schema";
+import {
+  alertPreferences,
+  alerts,
+  availabilitySnapshots,
+  InsertUser,
+  subscriptionActions,
+  subscriptions,
+  users,
+  watchlistItems,
+} from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
-    try {
-      _db = drizzle(process.env.DATABASE_URL);
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
-    }
+    try { _db = drizzle(process.env.DATABASE_URL); } catch (error) { console.warn("[Database] Failed to connect:", error); }
   }
   return _db;
 }
@@ -23,27 +27,15 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   if (!db) return;
   const values: InsertUser = { openId: user.openId, lastSignedIn: new Date() };
   const updateSet: Record<string, unknown> = { lastSignedIn: new Date() };
-  (["name", "email", "loginMethod"] as const).forEach(field => {
-    if (user[field] !== undefined) {
-      values[field] = user[field] ?? null;
-      updateSet[field] = user[field] ?? null;
-    }
-  });
-  if (user.role !== undefined) {
-    values.role = user.role;
-    updateSet.role = user.role;
-  } else if (user.openId === ENV.ownerOpenId) {
-    values.role = "admin";
-    updateSet.role = "admin";
-  }
+  (["name", "email", "loginMethod"] as const).forEach(field => { if (user[field] !== undefined) { values[field] = user[field] ?? null; updateSet[field] = user[field] ?? null; } });
+  if (user.role !== undefined) { values.role = user.role; updateSet.role = user.role; } else if (user.openId === ENV.ownerOpenId) { values.role = "admin"; updateSet.role = "admin"; }
   await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
 }
 
 export async function getUserByOpenId(openId: string) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-  return result[0];
+  return (await db.select().from(users).where(eq(users.openId, openId)).limit(1))[0];
 }
 
 export async function getWatchlist(userId: number) {
@@ -52,85 +44,134 @@ export async function getWatchlist(userId: number) {
   return db.select().from(watchlistItems).where(eq(watchlistItems.userId, userId));
 }
 
-export async function addWatchlistItem(
-  userId: number,
-  item: {
-    tmdbId: number;
-    mediaType: "movie" | "tv";
-    title: string;
-    posterPath?: string | null;
-    releaseDate?: string | null;
-    plannedFor: "this_week" | "this_month" | "someday";
-    note?: string | null;
-    providerNamesJson: string;
-    availabilityCheckedAt?: Date | null;
-    availabilitySourceUrl?: string | null;
-  },
-) {
+export async function getOwnedWatchlistItem(userId: number, id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return (await db.select().from(watchlistItems).where(and(eq(watchlistItems.id, id), eq(watchlistItems.userId, userId))).limit(1))[0];
+}
+
+export type WatchlistInput = {
+  tmdbId: number;
+  mediaType: "movie" | "tv";
+  title: string;
+  posterPath?: string | null;
+  releaseDate?: string | null;
+  plannedFor: "this_week" | "this_month" | "someday";
+  note?: string | null;
+  monitorAvailability?: boolean;
+  availabilityRegion?: string;
+  providerNamesJson: string;
+  availabilityCheckedAt?: Date | null;
+  availabilitySourceUrl?: string | null;
+};
+
+export async function addWatchlistItem(userId: number, item: WatchlistInput) {
   const db = await getDb();
   if (!db) throw new Error("Database is unavailable.");
-  await db.insert(watchlistItems).values({ userId, ...item }).onDuplicateKeyUpdate({
-    set: {
-      title: item.title,
-      posterPath: item.posterPath ?? null,
-      releaseDate: item.releaseDate ?? null,
-      plannedFor: item.plannedFor,
-      note: item.note ?? null,
-      providerNamesJson: item.providerNamesJson,
-      availabilityCheckedAt: item.availabilityCheckedAt ?? null,
-      availabilitySourceUrl: item.availabilitySourceUrl ?? null,
-    },
-  });
+  await db.insert(watchlistItems).values({ userId, ...item }).onDuplicateKeyUpdate({ set: {
+    title: item.title, posterPath: item.posterPath ?? null, releaseDate: item.releaseDate ?? null, plannedFor: item.plannedFor,
+    note: item.note ?? null, monitorAvailability: item.monitorAvailability ?? true, availabilityRegion: item.availabilityRegion ?? "US",
+    providerNamesJson: item.providerNamesJson, availabilityCheckedAt: item.availabilityCheckedAt ?? null, availabilitySourceUrl: item.availabilitySourceUrl ?? null,
+  } });
+  return (await db.select().from(watchlistItems).where(and(eq(watchlistItems.userId, userId), eq(watchlistItems.tmdbId, item.tmdbId), eq(watchlistItems.mediaType, item.mediaType))).limit(1))[0];
 }
 
 export async function updateWatchlistIntent(userId: number, id: number, plannedFor: "this_week" | "this_month" | "someday") {
-  const db = await getDb();
-  if (!db) throw new Error("Database is unavailable.");
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
   await db.update(watchlistItems).set({ plannedFor }).where(and(eq(watchlistItems.id, id), eq(watchlistItems.userId, userId)));
 }
 
 export async function updateWatchlistNote(userId: number, id: number, note: string | null) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is unavailable.");
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
   await db.update(watchlistItems).set({ note }).where(and(eq(watchlistItems.id, id), eq(watchlistItems.userId, userId)));
 }
 
+export async function updateWatchlistMonitoring(userId: number, id: number, monitorAvailability: boolean) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  await db.update(watchlistItems).set({ monitorAvailability }).where(and(eq(watchlistItems.id, id), eq(watchlistItems.userId, userId)));
+}
+
+export async function updateWatchlistAvailability(userId: number, id: number, input: { providerNamesJson: string; checkedAt: Date; sourceUrl: string | null; region: string }) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  await db.update(watchlistItems).set({ providerNamesJson: input.providerNamesJson, availabilityCheckedAt: input.checkedAt, availabilitySourceUrl: input.sourceUrl, availabilityRegion: input.region }).where(and(eq(watchlistItems.id, id), eq(watchlistItems.userId, userId)));
+}
+
 export async function removeWatchlistItem(userId: number, id: number) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is unavailable.");
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
   await db.delete(watchlistItems).where(and(eq(watchlistItems.id, id), eq(watchlistItems.userId, userId)));
 }
 
+export async function getLatestSnapshot(watchlistItemId: number) {
+  const db = await getDb(); if (!db) return undefined;
+  return (await db.select().from(availabilitySnapshots).where(eq(availabilitySnapshots.watchlistItemId, watchlistItemId)).orderBy(desc(availabilitySnapshots.checkedAt)).limit(1))[0];
+}
+
+export async function getSnapshotHistory(userId: number, watchlistItemId: number) {
+  const owned = await getOwnedWatchlistItem(userId, watchlistItemId);
+  if (!owned) return [];
+  const db = await getDb(); if (!db) return [];
+  return db.select().from(availabilitySnapshots).where(eq(availabilitySnapshots.watchlistItemId, watchlistItemId)).orderBy(desc(availabilitySnapshots.checkedAt)).limit(12);
+}
+
+export async function addAvailabilitySnapshot(input: { watchlistItemId: number; region: string; offersJson: string; fingerprint: string; sourceUrl: string | null; checkedAt: Date }) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  await db.insert(availabilitySnapshots).values(input);
+}
+
+export async function getAlertPreferences(userId: number) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  await db.insert(alertPreferences).values({ userId }).onDuplicateKeyUpdate({ set: { userId } });
+  return (await db.select().from(alertPreferences).where(eq(alertPreferences.userId, userId)).limit(1))[0];
+}
+
+export async function updateAlertPreferences(userId: number, input: { availabilityChangesEnabled: boolean; renewalRemindersEnabled: boolean; pauseRemindersEnabled: boolean; renewalLeadDays: number; inAppEnabled: boolean }) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  await db.insert(alertPreferences).values({ userId, ...input }).onDuplicateKeyUpdate({ set: input });
+  return getAlertPreferences(userId);
+}
+
+export async function getAlerts(userId: number) {
+  const db = await getDb(); if (!db) return [];
+  return db.select().from(alerts).where(eq(alerts.userId, userId)).orderBy(desc(alerts.createdAt)).limit(60);
+}
+
+export async function createAlert(input: { userId: number; type: "availability_changed" | "renewal_due" | "pause_review" | "subscription_action"; title: string; body: string; payloadJson: string }) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  await db.insert(alerts).values(input);
+}
+
+export async function markAlertRead(userId: number, id: number) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  await db.update(alerts).set({ isRead: true }).where(and(eq(alerts.id, id), eq(alerts.userId, userId)));
+}
+
+export async function markAllAlertsRead(userId: number) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  await db.update(alerts).set({ isRead: true }).where(eq(alerts.userId, userId));
+}
+
 export async function getSubscriptions(userId: number) {
-  const db = await getDb();
-  if (!db) return [];
+  const db = await getDb(); if (!db) return [];
   return db.select().from(subscriptions).where(eq(subscriptions.userId, userId));
 }
 
-export type SubscriptionInput = {
-  providerName: string;
-  planName: string;
-  price: string;
-  currency: string;
-  billingCycle: "monthly" | "quarterly" | "yearly";
-  renewalDate: Date | null;
-  viewingIntent: "watch_now" | "considering" | "keep";
-};
+export type SubscriptionInput = { providerName: string; planName: string; price: string; currency: string; billingCycle: "monthly" | "quarterly" | "yearly"; renewalDate: Date | null; viewingIntent: "watch_now" | "considering" | "keep" };
 
-export async function addSubscription(userId: number, input: SubscriptionInput) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is unavailable.");
-  await db.insert(subscriptions).values({ userId, ...input });
+export async function addSubscription(userId: number, input: SubscriptionInput) { const db = await getDb(); if (!db) throw new Error("Database is unavailable."); await db.insert(subscriptions).values({ userId, ...input }); }
+export async function updateSubscription(userId: number, id: number, input: SubscriptionInput) { const db = await getDb(); if (!db) throw new Error("Database is unavailable."); await db.update(subscriptions).set(input).where(and(eq(subscriptions.id, id), eq(subscriptions.userId, userId))); }
+export async function removeSubscription(userId: number, id: number) { const db = await getDb(); if (!db) throw new Error("Database is unavailable."); await db.delete(subscriptions).where(and(eq(subscriptions.id, id), eq(subscriptions.userId, userId))); }
+
+export async function getSubscriptionActions(userId: number) {
+  const db = await getDb(); if (!db) return [];
+  return db.select().from(subscriptionActions).where(eq(subscriptionActions.userId, userId)).orderBy(desc(subscriptionActions.actionAt)).limit(80);
 }
 
-export async function updateSubscription(userId: number, id: number, input: SubscriptionInput) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is unavailable.");
-  await db.update(subscriptions).set(input).where(and(eq(subscriptions.id, id), eq(subscriptions.userId, userId)));
-}
-
-export async function removeSubscription(userId: number, id: number) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is unavailable.");
-  await db.delete(subscriptions).where(and(eq(subscriptions.id, id), eq(subscriptions.userId, userId)));
+export async function applySubscriptionAction(userId: number, subscriptionId: number, actionType: "paused" | "resumed" | "cancellation_planned" | "cancelled", note: string | null, pauseUntil: Date | null) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  const subscription = (await db.select().from(subscriptions).where(and(eq(subscriptions.id, subscriptionId), eq(subscriptions.userId, userId))).limit(1))[0];
+  if (!subscription) throw new Error("Subscription not found.");
+  const now = new Date();
+  const patch = actionType === "paused" ? { status: "paused" as const, pauseUntil, cancellationRequestedAt: null, endedAt: null } : actionType === "resumed" ? { status: "active" as const, pauseUntil: null, cancellationRequestedAt: null, endedAt: null } : actionType === "cancellation_planned" ? { status: "cancellation_planned" as const, pauseUntil: null, cancellationRequestedAt: now, endedAt: null } : { status: "cancelled" as const, pauseUntil: null, cancellationRequestedAt: subscription.cancellationRequestedAt ?? now, endedAt: now };
+  await db.update(subscriptions).set(patch).where(and(eq(subscriptions.id, subscriptionId), eq(subscriptions.userId, userId)));
+  await db.insert(subscriptionActions).values({ userId, subscriptionId, actionType, note });
 }

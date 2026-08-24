@@ -1,0 +1,1 @@
+ALTER TABLE `alertPreferences` MODIFY COLUMN `inAppEnabled` boolean NOT NULL DEFAULT false;

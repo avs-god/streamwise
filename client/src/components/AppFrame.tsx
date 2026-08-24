@@ -2,7 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ArrowUpRight, Bookmark, CircleUserRound, Compass, LayoutList, LogOut, WalletCards } from "lucide-react";
+import { ArrowUpRight, BellRing, Bookmark, Compass, LayoutList, LogOut, WalletCards } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 const nav = [
@@ -10,6 +10,7 @@ const nav = [
   { href: "/watchlist", label: "Watchlist", icon: Bookmark },
   { href: "/wallet", label: "Wallet", icon: WalletCards },
   { href: "/decisions", label: "Decisions", icon: LayoutList },
+  { href: "/updates", label: "Updates", icon: BellRing },
 ];
 
 export default function AppFrame({ children }: { children: React.ReactNode }) {

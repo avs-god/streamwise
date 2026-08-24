@@ -46,4 +46,10 @@ test("keyboard users can navigate core routes and submit the labelled discovery 
   await decisions.focus();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/decisions$/);
+
+  const updates = page.getByRole("link", { name: "Updates", exact: true });
+  await updates.focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/updates$/);
+  await expect(page.getByText("Keep updates private.")).toBeVisible();
 });
