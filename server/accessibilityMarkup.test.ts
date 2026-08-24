@@ -46,6 +46,9 @@ describe("keyboard and semantic-accessibility regression checks", () => {
     expect(page).toContain("Rotten Tomatoes reference");
     expect(page).toContain("Critic and blog reading");
     expect(page).toContain("does not reproduce their protected scores or review text");
+    expect(page).toContain("outbound-only references");
+    expect(page).toContain("No score, review text, or rating timestamp is imported");
+    expect(page).toContain("critic-reading links are unavailable until the catalog resolves this title");
   });
 
   it("keeps title-level community rating, review, and report controls available", () => {
@@ -113,5 +116,30 @@ describe("keyboard and semantic-accessibility regression checks", () => {
     expect(recommendations).toContain("never inferred from activity or public discussion");
     expect(recommendations).toContain("Private post-watch picks could not be loaded.");
     expect(recommendations).toContain("No private post-watch picks are available yet.");
+  });
+
+  it("keeps reply-level moderation private and tied to the existing thread-report contract", () => {
+    const community = source("client/src/pages/Community.tsx");
+    expect(community).toContain("Report reply");
+    expect(community).toContain("Report a {target}");
+    expect(community).toContain("replyId: threadReporting.replyId");
+    expect(community).toContain("Reports are private moderation signals");
+  });
+
+  it("gates moderation tools to administrators and keeps report targets distinct", () => {
+    const community = source("client/src/pages/Community.tsx");
+    expect(community).toContain('user?.role === "admin" ? <ModerationPanel />');
+    expect(community).toContain("Open community reports");
+    expect(community).toContain("Hide contribution");
+    expect(community).toContain("Hide {report.replyId ? \"reply\" : \"thread\"}");
+    expect(community).toContain("trpc.community.moderation.setReplyStatus");
+  });
+
+  it("preserves nested reply controls and visible parent-reply treatment", () => {
+    const community = source("client/src/pages/Community.tsx");
+    expect(community).toContain("Reply to this comment");
+    expect(community).toContain("parentReplyId");
+    expect(community).toContain("ml-5 border-l-4");
+    expect(community).toContain("Write a top-level reply instead");
   });
 });

@@ -25,6 +25,7 @@ const mockedDb = vi.hoisted(() => ({
   removeViewingSignal: vi.fn(async () => undefined),
   setCommunityPostStatus: vi.fn(async () => undefined),
   setCommunityThreadStatus: vi.fn(async () => undefined),
+  setCommunityThreadReplyStatus: vi.fn(async () => undefined),
 }));
 
 vi.mock("./db", () => ({
@@ -59,6 +60,7 @@ vi.mock("./db", () => ({
   setCommunityTitleRating: mockedDb.setCommunityTitleRating,
   setCommunityPostStatus: mockedDb.setCommunityPostStatus,
   setCommunityThreadStatus: mockedDb.setCommunityThreadStatus,
+  setCommunityThreadReplyStatus: mockedDb.setCommunityThreadReplyStatus,
   updateAlertPreferences: mockedDb.updateAlertPreferences,
   updateSubscription: vi.fn(),
   updateWatchlistIntent: vi.fn(),
@@ -140,11 +142,13 @@ describe("private profile data access", () => {
     await caller.community.reply({ threadId: 5, parentReplyId: null, body: "A thoughtful reply.", containsSpoilers: false, shareAttribution: false });
     await caller.community.reply({ threadId: 5, parentReplyId: 2, body: "A nested thoughtful reply.", containsSpoilers: false, shareAttribution: false });
     await caller.community.reportThread({ threadId: 5, replyId: null, reason: "spoiler", detail: "Please add a clearer spoiler label." });
+    await caller.community.reportThread({ threadId: 5, replyId: 2, reason: "abuse", detail: "Reply requires moderator review." });
 
     expect(mockedDb.createCommunityThread).toHaveBeenCalledWith(19, thread);
     expect(mockedDb.createThreadReply).toHaveBeenCalledWith(19, { threadId: 5, parentReplyId: null, body: "A thoughtful reply.", containsSpoilers: false, shareAttribution: false });
     expect(mockedDb.createThreadReply).toHaveBeenCalledWith(19, { threadId: 5, parentReplyId: 2, body: "A nested thoughtful reply.", containsSpoilers: false, shareAttribution: false });
     expect(mockedDb.reportCommunityThread).toHaveBeenCalledWith(19, { threadId: 5, replyId: null, reason: "spoiler", detail: "Please add a clearer spoiler label." });
+    expect(mockedDb.reportCommunityThread).toHaveBeenCalledWith(19, { threadId: 5, replyId: 2, reason: "abuse", detail: "Reply requires moderator review." });
   });
 
   it("scopes title ratings to the authenticated member and rejects out-of-range values", async () => {
@@ -163,7 +167,7 @@ describe("private profile data access", () => {
     expect(mockedDb.createCommunityPost).toHaveBeenCalledTimes(1);
     expect(mockedDb.createCommunityThread).toHaveBeenCalledTimes(1);
     expect(mockedDb.createThreadReply).toHaveBeenCalledTimes(2);
-    expect(mockedDb.reportCommunityThread).toHaveBeenCalledTimes(1);
+    expect(mockedDb.reportCommunityThread).toHaveBeenCalledTimes(2);
   });
 
   it("rejects each malformed report endpoint before any report persistence call", async () => {
@@ -183,10 +187,12 @@ describe("private profile data access", () => {
     await admin.community.moderation.threadReports();
     await admin.community.moderation.setStatus({ postId: 12, status: "hidden" });
     await admin.community.moderation.setThreadStatus({ threadId: 5, status: "removed" });
+    await admin.community.moderation.setReplyStatus({ replyId: 8, status: "hidden" });
     expect(mockedDb.getCommunityReports).toHaveBeenCalledTimes(1);
     expect(mockedDb.getCommunityThreadReports).toHaveBeenCalledTimes(1);
     expect(mockedDb.setCommunityPostStatus).toHaveBeenCalledWith(12, "hidden");
     expect(mockedDb.setCommunityThreadStatus).toHaveBeenCalledWith(5, "removed");
+    expect(mockedDb.setCommunityThreadReplyStatus).toHaveBeenCalledWith(8, "hidden");
   });
 
   it("keeps catalog and subscription decisions independent of community data", async () => {

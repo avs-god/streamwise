@@ -314,6 +314,11 @@ export async function setCommunityThreadStatus(threadId: number, status: "visibl
   await db.update(communityThreads).set({ status }).where(eq(communityThreads.id, threadId));
 }
 
+export async function setCommunityThreadReplyStatus(replyId: number, status: "visible" | "hidden" | "removed") {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  await db.update(communityThreadReplies).set({ status }).where(eq(communityThreadReplies.id, replyId));
+}
+
 export async function getCommunityThreadReports() {
   const db = await getDb(); if (!db) return [];
   return db.select().from(communityThreadReports).where(eq(communityThreadReports.status, "open")).orderBy(desc(communityThreadReports.createdAt)).limit(100);

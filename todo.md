@@ -69,11 +69,13 @@
 - [x] Add an idempotent, cron-authenticated project refresh endpoint that processes opt-in renewal reminders and observed availability checks without using in-process timers.
 - [ ] Publish the callback before creating a managed recurring job, then verify the schedule can safely report its availability-data limitations when no live catalog token is configured.
 - [x] Update the home-page hero message to “Find what to watch, where to watch.”
-- [ ] Research and document permitted, attributable sources for catalog recommendations, external ratings, critic coverage, and public review links without scraping protected review content.
+- [x] Research and document permitted, attributable sources for catalog recommendations, external ratings, critic coverage, and public review links without scraping protected review content.
 - [ ] Add deterministic recommendation pathways for genre, similar titles, post-watch selections, adaptations, and popular or well-rated catalog titles.
 - [ ] Add enriched title pages with verified legal offers, available catalog metadata, clearly sourced external-rating states, source-linked critic coverage, and related titles.
 - [x] Add authenticated member ratings and reviews with public visibility, report controls, and community aggregates that never fabricate reviews or ratings.
 - [ ] Keep all external review and rating labels source-specific, timestamped where available, and explicitly unavailable when no permitted provider is configured.
+- [ ] Add behavioral title-page coverage for source-specific outbound IMDb, Rotten Tomatoes, and critic labels in configured and no-catalog states.
+- [x] Audit every external review and rating surface for the same source-specific unavailable-state wording and licensed timestamp boundary.
 - [ ] Add automated tests for deterministic recommendation inputs, rating aggregation, review validation, fact separation, and accessible title-detail workflows.
 - [ ] Validate search, recommendation, title-detail, rating, review, responsive, keyboard, type, test, and production-build flows.
 - [x] Add a member-controlled Streamwise viewing-history signal with explicit consent, clear scope, and a private-by-default state for deterministic recommendations and the personal assistant.
@@ -96,13 +98,18 @@
 - [ ] Restore consented private viewing signals, public community rating aggregates, and strict exclusion of public discussion from personal profiling and verified catalog evidence.
 - [x] Add a dedicated deterministic recommendations surface for popular and top-rated films and series, while retaining candid no-catalog states.
 - [ ] Add moderated, title-linked discussion threads for plot talk, recommendations, and general movie or series conversation, including spoiler guidance and visibility status.
-- [ ] Add authenticated thread creation, threaded replies, reporting, and admin moderation controls with contributor attribution consent and private-by-default identity handling.
+- [x] Add authenticated thread creation, threaded replies, reporting, and admin moderation controls with contributor attribution consent and private-by-default identity handling.
+- [x] Add an admin-only moderation panel for open post and discussion reports, including reply status actions.
+- [x] Add member-only report actions for individual thread replies using the existing private moderation workflow.
 - [x] Keep discussion threads categorically separate from verified streaming availability, alerts, tracking, deterministic recommendations, and private member profiling.
 - [ ] Add accessibility, data-isolation, validation, and browser coverage for title details, ratings, reviews, threads, replies, reports, moderation, and spoiler notices.
 - [ ] Verify the public preview hierarchy for discovery, title-detail, community-review, critic-source, related-title, and no-catalog states without fabricating live data.
 - [ ] Link discussion threads to catalog title IDs from provider-first title details or discovery cards rather than relying only on free-text titles.
-- [ ] Auto-open the signed-in thread composer once for a valid title-linked Community deep link and visibly preserve its catalog context.
-- [ ] Add reply-to-reply controls and nested reply rendering using parentReplyId, with behavioral tests for the nested conversation flow.
+- [x] Auto-open the signed-in thread composer once for a valid title-linked Community deep link and visibly preserve its catalog context.
+- [x] Add reply-to-reply controls and nested reply rendering using parentReplyId, with behavioral tests for the nested conversation flow.
+- [x] Add and run a nested-reply regression covering parent selection, child submission with parentReplyId, and nested rendering order.
+- [x] Add a real nested-reply UI behavioral test that selects a parent, submits a child with parentReplyId, and asserts nested order.
+- [ ] Add authenticated browser validation for nested reply, reply-report, and moderation recovery interactions.
 - [ ] Verify title-context thread creation, nested reply, reporting, and moderation interactions in browser-level coverage.
 - [x] Improve simple movie or series public-web queries so the AI context attempts useful source-linked reading and discussion leads before presenting an insufficient-evidence fallback.
 - [x] Replace the generic insufficient-evidence text with a constructive fallback that preserves source boundaries and directs users to verified country-specific offers for actual availability.

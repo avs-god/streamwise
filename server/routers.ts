@@ -41,6 +41,7 @@ import {
   setCommunityPostStatus,
   setCommunityTitleRating,
   setCommunityThreadStatus,
+  setCommunityThreadReplyStatus,
 } from "./db";
 import { discoverCatalog, getCatalogDetail, getRecommendedCatalogTitles, getSimilarCatalogTitles, isCatalogConfigured, mergePostWatchRecommendations, searchCatalog } from "./catalog";
 import { refreshTrackedTitle, refreshTrackedTitlesForUser } from "./trackingService";
@@ -110,6 +111,7 @@ export const appRouter = router({
       threadReports: adminProcedure.query(() => getCommunityThreadReports()),
       setStatus: adminProcedure.input(z.object({ postId: z.number().int().positive(), status: z.enum(["visible", "hidden", "removed"]) })).mutation(async ({ input }) => { await setCommunityPostStatus(input.postId, input.status); return { success: true }; }),
       setThreadStatus: adminProcedure.input(z.object({ threadId: z.number().int().positive(), status: z.enum(["visible", "hidden", "removed"]) })).mutation(async ({ input }) => { await setCommunityThreadStatus(input.threadId, input.status); return { success: true }; }),
+      setReplyStatus: adminProcedure.input(z.object({ replyId: z.number().int().positive(), status: z.enum(["visible", "hidden", "removed"]) })).mutation(async ({ input }) => { await setCommunityThreadReplyStatus(input.replyId, input.status); return { success: true }; }),
     }),
   }),
   viewingSignals: router({
