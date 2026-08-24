@@ -90,3 +90,21 @@ test("keyboard users can navigate core routes and submit the labelled discovery 
   await expect(page.getByRole("heading", { name: "What members are noticing." })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Talk plots, craft, and what to watch next." })).toBeVisible();
 });
+
+test("public browser routes preserve no-catalog and private-member boundaries", async ({ page }) => {
+  await page.goto("/title/movie/1");
+  await expect(page.getByRole("heading", { name: "Legal catalog is safely on standby." })).toBeVisible();
+  await expect(page.getByText("external rating references, and related titles")).toBeVisible();
+  await expect(page.getByText("IMDb, Rotten Tomatoes, and critic-reading links are unavailable")).toBeVisible();
+  await expect(page.getByText("What Streamwise members think.")).toBeVisible();
+
+  await page.goto("/watchlist");
+  await expect(page.getByText("Make this list yours.")).toBeVisible();
+  await expect(page.getByText("Private by design.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
+
+  await page.goto("/community?tmdbId=27205&mediaType=movie&title=Inception");
+  await expect(page.getByRole("heading", { name: "What members are noticing." })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign in to contribute" })).toBeVisible();
+  await expect(page.getByText("Community observations are public discussion, not catalog evidence.")).toBeVisible();
+});
