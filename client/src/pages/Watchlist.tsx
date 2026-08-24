@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import React from "react";
 import AppFrame from "@/components/AppFrame";
 import { PrivacyNote } from "@/components/ConnectionNotice";
 import { Badge } from "@/components/ui/badge";

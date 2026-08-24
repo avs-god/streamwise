@@ -78,6 +78,8 @@
 - [x] Add a behavioral no-catalog title-route test asserting outbound references are explicitly unavailable until catalog resolution.
 - [x] Audit every external review and rating surface for the same source-specific unavailable-state wording and licensed timestamp boundary.
 - [ ] Add automated tests for deterministic recommendation inputs, rating aggregation, review validation, fact separation, and accessible title-detail workflows.
+- [x] Add explicit deterministic discovery tests for popular, top-rated, genre, similar, private post-watch, and adaptation-disclosure modes.
+- [x] Add explicit title/community review validation and moderation-visibility tests without seeding review content.
 - [ ] Validate search, recommendation, title-detail, rating, review, responsive, keyboard, type, test, and production-build flows.
 - [x] Add a member-controlled Streamwise viewing-history signal with explicit consent, clear scope, and a private-by-default state for deterministic recommendations and the personal assistant.
 - [x] Add a dedicated member-recorded viewing-signal table, member-scoped write/read/remove API, and private UI control.
@@ -87,7 +89,7 @@
 - [ ] Add regression and signed-in browser coverage for watched-record controls and private post-watch query recovery.
 - [x] Add a unified-intelligence explanation that distinguishes a member’s consented signals, public community aggregates, and public unverified discussion without profiling private community activity.
 - [x] Make verified country-specific “Where to stream” provider names and offer types the visually primary field on every catalog-backed search, recommendation, and title card.
-- [ ] Add source-boundary and accessibility tests for consented viewing signals, aggregate-only community context, and prominent provider availability states.
+- [x] Add source-boundary and accessibility tests for consented viewing signals, aggregate-only community context, and prominent provider availability states.
 - [x] Add source-colour-coded public-web, critic, and public-discussion tags with attribution, explicit evidence level, and a strict unverified-context boundary.
 - [x] Research official or licensed catalog/integration paths for major streaming providers and document which sources can support direct availability data versus outbound reference links only.
 - [x] Ensure verified country-specific “Where to stream” data remains visually and semantically dominant over all public-web and discussion tags.
@@ -96,11 +98,11 @@
 - [ ] Verify the published scheduled callback accepts only its persisted cron identity and reports `catalogConfigured:false` safely when no catalog token is configured.
 - [x] Add a focused scheduled-refresh test for no-token, unknown-cron, and orphan-cron behavior before the final release checkpoint.
 - [ ] Restore the provider-first deterministic discovery surface with title, genre, similar, post-watch, adaptation, popular, and top-rated pathways.
-- [ ] Restore a dedicated title page with country-specific legal provider offers first, permitted external rating and critic references, community rating and reviews, and related titles.
+- [x] Restore a dedicated title page with country-specific legal provider offers first, permitted external rating and critic references, community rating and reviews, and related titles.
 - [x] Keep IMDb and Rotten Tomatoes as outbound-only references until an explicitly permitted licensed rating integration is configured; never scrape or reproduce their scores or review text.
-- [ ] Restore consented private viewing signals, public community rating aggregates, and strict exclusion of public discussion from personal profiling and verified catalog evidence.
+- [x] Restore consented private viewing signals, public community rating aggregates, and strict exclusion of public discussion from personal profiling and verified catalog evidence.
 - [x] Add a dedicated deterministic recommendations surface for popular and top-rated films and series, while retaining candid no-catalog states.
-- [ ] Add moderated, title-linked discussion threads for plot talk, recommendations, and general movie or series conversation, including spoiler guidance and visibility status.
+- [x] Add moderated, title-linked discussion threads for plot talk, recommendations, and general movie or series conversation, including spoiler guidance and visibility status.
 - [x] Add authenticated thread creation, threaded replies, reporting, and admin moderation controls with contributor attribution consent and private-by-default identity handling.
 - [x] Add an admin-only moderation panel for open post and discussion reports, including reply status actions.
 - [x] Add member-only report actions for individual thread replies using the existing private moderation workflow.

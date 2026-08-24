@@ -4,12 +4,13 @@ import React from "react";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => ({ user: null, loading: false }) }));
-vi.mock("@/lib/trpc", () => ({ trpc: { community: { titleRatingSummary: { useQuery: () => ({ data: { average: null, count: 0 } }) }, titleReviews: { useQuery: () => ({ data: [] }) }, setTitleRating: { useMutation: () => ({}) }, contribute: { useMutation: () => ({}) }, report: { useMutation: () => ({}) } } } }));
+const authState = vi.hoisted(() => ({ user: null as { id: number } | null }));
+vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => ({ user: authState.user, loading: false }) }));
+vi.mock("@/lib/trpc", () => ({ trpc: { useUtils: () => ({ community: { titleRatingSummary: { invalidate: vi.fn() }, titleReviews: { invalidate: vi.fn() } } }), community: { titleRatingSummary: { useQuery: () => ({ data: { average: null, count: 0 } }) }, titleReviews: { useQuery: () => ({ data: [] }) }, setTitleRating: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, contribute: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) }, report: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) } } } }));
 
-import { ExternalReferencePanel, TitleStandbyNotice } from "./TitlePage";
+import { ExternalReferencePanel, TitleCommunity, TitleStandbyNotice } from "./TitlePage";
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); authState.user = null; });
 
 describe("Title page source boundary", () => {
   it("keeps IMDb and Rotten Tomatoes outbound-only in a configured title state", () => {
@@ -25,5 +26,15 @@ describe("Title page source boundary", () => {
     expect(screen.getByText("Legal catalog is safely on standby.")).toBeInTheDocument();
     expect(screen.getByText(/IMDb, Rotten Tomatoes, and critic-reading links are unavailable/)).toBeInTheDocument();
     expect(screen.getByText(/without a permitted licensed provider/)).toBeInTheDocument();
+  });
+
+  it("renders accessible authenticated member rating and review controls without prepopulating a review", () => {
+    authState.user = { id: 7 };
+    render(<TitleCommunity titleId={27205} titleName="Inception" mediaType="movie" />);
+    expect(screen.getByText("What Streamwise members think.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "1 ★" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "5 ★" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Write a community review")).toHaveValue("");
+    expect(screen.getByRole("button", { name: "Publish community review" })).toBeDisabled();
   });
 });

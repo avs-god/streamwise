@@ -126,7 +126,7 @@ describe("private profile data access", () => {
 
   it("writes community contributions and moderation reports under the authenticated user", async () => {
     const caller = appRouter.createCaller(contextFor(7));
-    const post = { title: "Example Film", mediaType: "movie" as const, region: "IN", providerName: "Example Provider", kind: "review" as const, body: "A careful member review with enough context.", sourceUrl: "https://example.com/source", shareAttribution: false };
+    const post = { title: "Example Film", mediaType: "movie" as const, region: "IN", providerName: "Example Provider", kind: "available" as const, body: "A structured contribution with enough context.", sourceUrl: "https://example.com/source", shareAttribution: false };
 
     await caller.community.contribute(post);
     await caller.community.report({ postId: 12, reason: "misleading", detail: "Needs a source check." });
@@ -160,7 +160,8 @@ describe("private profile data access", () => {
 
   it("rejects malformed community contributions, thread replies, and reports before persistence", async () => {
     const caller = appRouter.createCaller(contextFor(7));
-    await expect(caller.community.contribute({ title: "Film", mediaType: "movie", region: "IND", providerName: null, kind: "review", body: "Too short", sourceUrl: null, shareAttribution: false })).rejects.toThrow();
+    await expect(caller.community.contribute({ title: "Film", mediaType: "movie", region: "IND", providerName: null, kind: "available", body: "Too short", sourceUrl: null, shareAttribution: false })).rejects.toThrow();
+    await expect(caller.community.contribute({ title: "Film", mediaType: "movie", region: "IN", providerName: null, kind: "review", body: "", sourceUrl: null, shareAttribution: false })).rejects.toThrow();
     await expect(caller.community.createThread({ tmdbId: null, title: "Film", mediaType: "movie", topic: "plot", headline: "Tiny", body: "Too short", containsSpoilers: false, shareAttribution: false })).rejects.toThrow();
     await expect(caller.community.reply({ threadId: 0, parentReplyId: null, body: "x", containsSpoilers: false, shareAttribution: false })).rejects.toThrow();
     await expect(caller.community.reportThread({ threadId: 5, replyId: null, reason: "not-a-reason" as never, detail: null })).rejects.toThrow();
