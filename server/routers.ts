@@ -12,6 +12,7 @@ import {
   createThreadReply,
   createAlert,
   getAlertPreferences,
+  getProviderAlertSubscriptions,
   getAlerts,
   getCommunityPosts,
   getCommunityThreadReports,
@@ -42,6 +43,7 @@ import {
   setCommunityTitleRating,
   setCommunityThreadStatus,
   setCommunityThreadReplyStatus,
+  setProviderAlertSubscription,
 } from "./db";
 import { discoverCatalog, getCatalogDetail, getRecommendedCatalogTitles, getSimilarCatalogTitles, isCatalogConfigured, mergePostWatchRecommendations, searchCatalog } from "./catalog";
 import { refreshTrackedTitle, refreshTrackedTitlesForUser } from "./trackingService";
@@ -152,6 +154,8 @@ export const appRouter = router({
   alerts: router({
     preferences: protectedProcedure.query(({ ctx }) => getAlertPreferences(ctx.user.id)),
     updatePreferences: protectedProcedure.input(z.object({ availabilityChangesEnabled: z.boolean(), renewalRemindersEnabled: z.boolean(), pauseRemindersEnabled: z.boolean(), renewalLeadDays: z.number().int().min(1).max(60), inAppEnabled: z.boolean() })).mutation(({ ctx, input }) => updateAlertPreferences(ctx.user.id, input)),
+    providerSubscriptions: protectedProcedure.query(({ ctx }) => getProviderAlertSubscriptions(ctx.user.id)),
+    setProviderSubscription: protectedProcedure.input(z.object({ providerName: z.string().trim().min(1).max(150), region: z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/), enabled: z.boolean() })).mutation(async ({ ctx, input }) => { await setProviderAlertSubscription(ctx.user.id, input); return { success: true }; }),
     list: protectedProcedure.query(async ({ ctx }) => { await syncRenewalAlerts(ctx.user.id); return getAlerts(ctx.user.id); }),
     markRead: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => { await markAlertRead(ctx.user.id, input.id); return { success: true }; }),
     markAllRead: protectedProcedure.mutation(async ({ ctx }) => { await markAllAlertsRead(ctx.user.id); return { success: true }; }),

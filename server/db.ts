@@ -11,6 +11,7 @@ import {
   communityThreads,
   communityTitleRatings,
   InsertUser,
+  providerAlertSubscriptions,
   scheduledJobs,
   subscriptionActions,
   subscriptions,
@@ -159,6 +160,16 @@ export async function updateAlertPreferences(userId: number, input: { availabili
   const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
   await db.insert(alertPreferences).values({ userId, ...input }).onDuplicateKeyUpdate({ set: input });
   return getAlertPreferences(userId);
+}
+
+export async function getProviderAlertSubscriptions(userId: number) {
+  const db = await getDb(); if (!db) return [];
+  return db.select().from(providerAlertSubscriptions).where(eq(providerAlertSubscriptions.userId, userId)).orderBy(providerAlertSubscriptions.providerName);
+}
+
+export async function setProviderAlertSubscription(userId: number, input: { providerName: string; region: string; enabled: boolean }) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  await db.insert(providerAlertSubscriptions).values({ userId, ...input }).onDuplicateKeyUpdate({ set: { enabled: input.enabled } });
 }
 
 export async function getAlerts(userId: number) {

@@ -6,10 +6,18 @@ import {
   getAlertPreferences,
   getLatestSnapshot,
   getOwnedWatchlistItem,
+  getProviderAlertSubscriptions,
   updateWatchlistAvailability,
 } from "./db";
 
 function compactOffers(offers: SnapshotOffer[]) { return offers.map(({ id, name, type }) => ({ id, name, type })); }
+
+export function matchesProviderAlertSelection(change: { added: SnapshotOffer[]; removed: SnapshotOffer[] }, subscriptions: Array<{ providerName: string; region: string; enabled: boolean }>, region: string) {
+  const selected = subscriptions.filter(subscription => subscription.enabled && subscription.region === region).map(subscription => subscription.providerName.trim().toLocaleLowerCase());
+  if (!selected.length) return true;
+  const changedProviders = [...change.added, ...change.removed].map(offer => offer.name.trim().toLocaleLowerCase());
+  return changedProviders.some(provider => selected.includes(provider));
+}
 
 export async function refreshTrackedTitle(userId: number, watchlistItemId: number, language = "en-US") {
   const item = await getOwnedWatchlistItem(userId, watchlistItemId);
@@ -29,7 +37,8 @@ export async function refreshTrackedTitle(userId: number, watchlistItemId: numbe
   }
   if (latest && change.changed && item.monitorAvailability) {
     const preferences = await getAlertPreferences(userId);
-    if (preferences.availabilityChangesEnabled && preferences.inAppEnabled) {
+    const providerSelections = await getProviderAlertSubscriptions(userId);
+    if (preferences.availabilityChangesEnabled && preferences.inAppEnabled && matchesProviderAlertSelection(change, providerSelections, item.availabilityRegion)) {
       await createAlert({ userId, type: "availability_changed", title: `Availability changed: ${item.title}`, body: `${change.summary} This is an observed difference between two ${item.availabilityRegion} source snapshots; it is not a confirmed leaving-soon notice.`, payloadJson: JSON.stringify({ watchlistItemId: item.id, region: item.availabilityRegion, added: change.added, removed: change.removed, checkedAt: detail.checkedAt }) });
     }
   }

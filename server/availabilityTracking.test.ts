@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { compareAvailability, normalizeOffers, offersFingerprint } from "./availabilityTracking";
 import { duePauseReviewCandidates, dueRenewalCandidates } from "./alertService";
+import { matchesProviderAlertSelection } from "./trackingService";
 
 describe("availability snapshot comparison", () => {
   it("finds added and removed legal offers without inferring a departure date", () => {
@@ -24,6 +25,14 @@ describe("availability snapshot comparison", () => {
     const offers = normalizeOffers([{ id: 8, name: " Netflix ", type: "stream" }, { id: 8, name: "Netflix", type: "stream" }]);
     expect(offers).toEqual([{ id: 8, name: "Netflix", type: "stream" }]);
     expect(offersFingerprint(offers)).toBe(JSON.stringify(offers));
+  });
+  it("narrows opted-in snapshot alerts to selected changed providers in the same country", () => {
+    const change = { added: [{ id: 7, name: "MUBI", type: "stream" as const }], removed: [{ id: 8, name: "Netflix", type: "stream" as const }] };
+    expect(matchesProviderAlertSelection(change, [], "IN")).toBe(true);
+    expect(matchesProviderAlertSelection(change, [{ providerName: "Netflix", region: "IN", enabled: true }], "IN")).toBe(true);
+    expect(matchesProviderAlertSelection(change, [{ providerName: "Netflix", region: "US", enabled: true }], "IN")).toBe(true);
+    expect(matchesProviderAlertSelection(change, [{ providerName: "Apple TV", region: "IN", enabled: true }], "IN")).toBe(false);
+    expect(matchesProviderAlertSelection(change, [{ providerName: "Netflix", region: "IN", enabled: false }], "IN")).toBe(true);
   });
 });
 

@@ -78,6 +78,21 @@ export const alertPreferences = mysqlTable("alertPreferences", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+/** Member-selected provider names used only to narrow alerts from their own saved-title catalog snapshots. */
+export const providerAlertSubscriptions = mysqlTable(
+  "providerAlertSubscriptions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    providerName: varchar("providerName", { length: 150 }).notNull(),
+    region: varchar("region", { length: 2 }).notNull(),
+    enabled: boolean("enabled").default(true).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [uniqueIndex("provider_alert_subscription_member_provider_region_unique").on(table.userId, table.providerName, table.region), index("provider_alert_subscription_member_region_idx").on(table.userId, table.region)],
+);
+
 export const alerts = mysqlTable(
   "alerts",
   {

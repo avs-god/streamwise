@@ -7,6 +7,8 @@ const mockedDb = vi.hoisted(() => ({
   updateWatchlistNote: vi.fn(async () => undefined),
   updateAlertPreferences: vi.fn(async (userId: number, input: unknown) => ({ userId, ...input })),
   getAlertPreferences: vi.fn(async () => ({ availabilityChangesEnabled: false, renewalRemindersEnabled: false, pauseRemindersEnabled: false, renewalLeadDays: 7, inAppEnabled: false })),
+  getProviderAlertSubscriptions: vi.fn(async (userId: number) => [{ id: 1, userId, providerName: "Netflix", region: "IN", enabled: true }]),
+  setProviderAlertSubscription: vi.fn(async () => undefined),
   applySubscriptionAction: vi.fn(async () => undefined),
   createAlert: vi.fn(async () => undefined),
   createCommunityPost: vi.fn(async () => undefined),
@@ -38,6 +40,7 @@ vi.mock("./db", () => ({
   createCommunityThread: mockedDb.createCommunityThread,
   createThreadReply: mockedDb.createThreadReply,
   getAlertPreferences: mockedDb.getAlertPreferences,
+  getProviderAlertSubscriptions: mockedDb.getProviderAlertSubscriptions,
   getAlerts: vi.fn(async () => []),
   getCommunityPosts: mockedDb.getCommunityPosts,
   getCommunityThreads: mockedDb.getCommunityThreads,
@@ -61,6 +64,7 @@ vi.mock("./db", () => ({
   setCommunityPostStatus: mockedDb.setCommunityPostStatus,
   setCommunityThreadStatus: mockedDb.setCommunityThreadStatus,
   setCommunityThreadReplyStatus: mockedDb.setCommunityThreadReplyStatus,
+  setProviderAlertSubscription: mockedDb.setProviderAlertSubscription,
   updateAlertPreferences: mockedDb.updateAlertPreferences,
   updateSubscription: vi.fn(),
   updateWatchlistIntent: vi.fn(),
@@ -122,6 +126,15 @@ describe("private profile data access", () => {
     expect(mockedDb.updateAlertPreferences).toHaveBeenCalledWith(19, preferences);
     expect(mockedDb.applySubscriptionAction).toHaveBeenCalledWith(19, 22, "paused", null, null);
     expect(mockedDb.createAlert).not.toHaveBeenCalled();
+  });
+
+  it("scopes provider-alert selections to the authenticated member", async () => {
+    const caller = appRouter.createCaller(contextFor(19));
+    const subscriptions = await caller.alerts.providerSubscriptions();
+    await caller.alerts.setProviderSubscription({ providerName: "Netflix", region: "IN", enabled: true });
+    expect(mockedDb.getProviderAlertSubscriptions).toHaveBeenCalledWith(19);
+    expect(mockedDb.setProviderAlertSubscription).toHaveBeenCalledWith(19, { providerName: "Netflix", region: "IN", enabled: true });
+    expect(subscriptions).toEqual([expect.objectContaining({ userId: 19, providerName: "Netflix" })]);
   });
 
   it("writes community contributions and moderation reports under the authenticated user", async () => {

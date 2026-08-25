@@ -1,5 +1,9 @@
 # Recent Visual Validation — 2026-08-24
 
+## Provider-specific confirmed-snapshot alert validation
+
+Migration `0011_gray_scarlet_witch.sql` created the member-scoped provider alert subscription table and was applied successfully. The release passed **17 Vitest files / 83 tests**, two Playwright checks, TypeScript, and production build. The standalone production server returned HTTP `200` for `/`, `/updates`, `/leaving-soon`, and the emitted JavaScript asset, then was stopped. The new filter was unit-tested against changed legal snapshot offers only; no live provider account, community report, or public-web lead was used as alert input.
+
 ## Leaving-soon and grounded-AI release validation
 
 The release suite passed with **17 Vitest files / 81 tests**, two Playwright checks, TypeScript, and production build. The sandbox reset temporarily removed the Playwright browser binary; it was restored before the browser checks were rerun successfully. The standalone production server returned HTTP `200` for `/`, `/leaving-soon`, `/community`, `/title/movie/1`, and the emitted JavaScript asset, then was stopped.
