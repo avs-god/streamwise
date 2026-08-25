@@ -191,3 +191,16 @@
 - [x] Expand movie title and recommendation cards with community rating summaries, review counts, member-contributed reviews, and authenticated rating/review controls.
 - [x] Complete nested community threads, replies, title-linked discussion, review contribution, reporting, moderation, empty, loading, and error states.
 - [x] Add review, thread, source-boundary, accessibility, responsive, unit, browser, type, production-build, and independent-runtime validation for the expanded community release.
+- [x] Map the Streamwise relational data model to Firebase Authentication identities and Firestore collections without weakening ownership, moderation, or source boundaries.
+- [x] Add Firebase-ready configuration, emulator-friendly security rules, and a documented migration/export-import plan that keeps provider credentials server-side.
+- [x] Define portable replacements for current database, session, scheduled refresh, storage, notifications, and AI service dependencies and document their independent deployment variables.
+- [x] Validate Firebase configuration artifacts and independent build behavior without committing any Firebase credentials.
+- [x] Add licensed IMDb/Rotten Tomatoes integration configuration boundaries with empty provider values, outbound fallback, attribution, and no protected-content ingestion without an approved license.
+- [x] Add a member-scoped helpful-vote collection and moderation boundary in Firestore migration rules while retaining current review reporting and moderation controls.
+- [x] Preserve existing spoiler indicators and reply/title-review moderation boundaries for Firestore migration, with client filtering ready to be enabled after Firebase cutover.
+- [x] Add Firebase/Firestore collection mapping, security rules, emulator configuration, and a portable backend migration guide covering sessions, scheduled jobs, storage, notifications, AI, and external provider keys.
+- [x] Run final review-control, portability-artifact, type, browser, production-build, and independent-hosting validation.
+- [x] Add a standard direct GPT-compatible provider configuration path for grounded AI discovery and recommendations, with empty deployment-time values and a candid unavailable fallback when no provider is configured.
+- [x] Document the direct model-provider environment variables, server-only key handling, web-search boundary, and independent deployment behavior without committing keys.
+- [x] Add a direct, source-linked GPT-compatible public-web Leaving Soon research response for title and provider queries, visibly separate from confirmed legal snapshots and community reports.
+- [x] Add direct-response, source, loading, error, no-source, accessibility, browser, type, production-build, and independent-provider validation for Leaving Soon tracking.

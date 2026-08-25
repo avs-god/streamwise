@@ -9,6 +9,19 @@ type Citation = { title?: string; url?: string };
 type RawResponse = { choices?: Array<{ message?: { content?: string | Array<unknown>; metadata?: { source_citations?: Citation[] } } }> };
 type StructuredLead = { status: "lead" | "insufficient"; summary: string; directResponse: string };
 
+async function directProviderResearch(messages: Array<{ role: "system" | "user"; content: string }>) {
+  if (process.env.AI_PROVIDER?.trim().toLowerCase() !== "openai") return null;
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  if (!apiKey) return null;
+  const baseUrl = (process.env.OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1").replace(/\/$/, "");
+  const model = process.env.OPENAI_MODEL?.trim() || "gpt-4.1-mini";
+  const response = await fetch(`${baseUrl}/responses`, { method: "POST", headers: { Authorization: `Bearer ${apiKey}`, "content-type": "application/json" }, body: JSON.stringify({ model, input: messages.map(message => ({ role: message.role, content: [{ type: "input_text", text: message.content }] })), tools: [{ type: "web_search_preview" }], text: { format: { type: "json_schema", name: "streamwise_research_lead", strict: true, schema: { type: "object", properties: { status: { type: "string", enum: ["lead", "insufficient"] }, summary: { type: "string" }, directResponse: { type: "string" } }, required: ["status", "summary", "directResponse"], additionalProperties: false } } } }) });
+  if (!response.ok) throw new Error(`Direct AI provider returned ${response.status}.`);
+  const data = await response.json() as { output_text?: string; output?: Array<{ content?: Array<{ annotations?: Array<{ title?: string; url?: string }> }> }> };
+  const citations = data.output?.flatMap(item => item.content?.flatMap(content => content.annotations?.map(annotation => ({ title: annotation.title, url: annotation.url })) ?? []) ?? []) ?? [];
+  return { content: data.output_text ?? "", citations };
+}
+
 function textContent(content: unknown) {
   if (typeof content === "string") return content;
   if (Array.isArray(content)) return content.map(part => typeof part === "object" && part && "text" in part ? String((part as { text: unknown }).text) : "").join(" ");
@@ -72,29 +85,33 @@ function insufficient(message: string, resolvedQuery: string, correctionNote: st
 
 export async function researchDiscoveryLead(input: { query: string; region: string; language: string }): Promise<DiscoveryResearch> {
   const intent = resolveResearchQuery(input.query);
-  const models = await listLLMModels();
-  const model = models.data.find(item => item.id === "gpt-5-mini")?.id;
-  if (!model) throw new Error("The configured AI research model is temporarily unavailable.");
-  const response = await invokeLLM({
-    model,
+  const messages = [
+      { role: "system" as const, content: "You are Streamwise’s conversational public-web movie assistant. Resolve likely title typos, then use web search and answer the user directly in natural language as a helpful web-search assistant would. Search reporting, official pages, guides, criticism, and public discussion. In directResponse, synthesise what the public web says, including provider names or prices when a source itself reports them, with natural attribution such as ‘search results indicate’ or ‘a public discussion says’. Do not copy posts, handles, personal data, credentials, or private material. The app separately displays inspectable source links and a licensed country-specific legal catalog; never call public-web findings verified, confirmed, or current legal availability. summary is a shorter neutral overview. Output JSON only." },
+      { role: "user" as const, content: `Original research question: ${input.query}\nResolved search intent: ${intent.resolvedQuery}\nViewer country: ${input.region.toUpperCase()}\nLanguage context: ${input.language}\nThe verified legal catalog remains the authority for current offers.` },
+    ];
+  const direct = await directProviderResearch(messages);
+  const models = direct ? null : await listLLMModels();
+  const model = models?.data.find(item => item.id === "gpt-5-mini")?.id;
+  if (!direct && !model) throw new Error("No direct or managed AI research model is configured.");
+  const response = direct ? null : await invokeLLM({
+    model: model!,
     maxCompletionTokens: 850,
-    messages: [
-      { role: "system", content: "You are Streamwise’s conversational public-web movie assistant. Resolve likely title typos, then use web search and answer the user directly in natural language as a helpful web-search assistant would. Search reporting, official pages, guides, criticism, and public discussion. In directResponse, synthesise what the public web says, including provider names or prices when a source itself reports them, with natural attribution such as ‘search results indicate’ or ‘a public discussion says’. Do not copy posts, handles, personal data, credentials, or private material. The app separately displays inspectable source links and a licensed country-specific legal catalog; never call public-web findings verified, confirmed, or current legal availability. summary is a shorter neutral overview. Output JSON only." },
-      { role: "user", content: `Original research question: ${input.query}\nResolved search intent: ${intent.resolvedQuery}\nViewer country: ${input.region.toUpperCase()}\nLanguage context: ${input.language}\nThe verified legal catalog remains the authority for current offers.` },
-    ],
+    messages,
     outputSchema: { name: "streamwise_research_lead", strict: true, schema: { type: "object", properties: { status: { type: "string", enum: ["lead", "insufficient"] }, summary: { type: "string", minLength: 1, maxLength: 900 }, directResponse: { type: "string", minLength: 1, maxLength: 1200 } }, required: ["status", "summary", "directResponse"], additionalProperties: false } },
     tools: [{ type: "web_search", web_search_tool_conf: { search_context_size: "medium" } } as unknown as Tool],
     toolChoice: "auto",
   } as Parameters<typeof invokeLLM>[0]);
   const raw = response as unknown as RawResponse;
-  const message = raw.choices?.[0]?.message;
-  const structured = parseStructuredLead(message?.content);
-  const sourceGroups = sourcesFrom([...(message?.metadata?.source_citations ?? []), ...inlineCitations(message?.content)]);
+  const message = raw?.choices?.[0]?.message;
+  const content = direct?.content ?? message?.content;
+  const structured = parseStructuredLead(content);
+  const sourceGroups = sourcesFrom([...(direct?.citations ?? []), ...(message?.metadata?.source_citations ?? []), ...inlineCitations(content)]);
   if (!structured || (!sourceGroups.sources.length && !sourceGroups.communitySources.length)) {
     const correction = intent.correctionNote ? ` ${intent.correctionNote.replace(/\*\*/g, "")}` : "";
     return insufficient(`I searched “${intent.resolvedQuery}” but could not ground an inspectable public reading link in this session.${correction} You can still use the legal catalog for current country-specific offers.`, intent.resolvedQuery, intent.correctionNote);
   }
-  const summary = structured.status === "lead" ? structured.summary : `Public-web reading and discussion links related to “${intent.resolvedQuery}” are collected below. Treat them as context, not current availability.`;
+  const isLeavingSoonQuery = /^leaving[- ]soon|platform-switch public context:/i.test(input.query.trim());
+  const summary = structured.status === "lead" ? (isLeavingSoonQuery ? structured.directResponse : structured.summary) : `Public-web reading and discussion links related to “${intent.resolvedQuery}” are collected below. Treat them as context, not current availability.`;
   const directResponse = structured.status === "lead" ? structured.directResponse : `I found public-web results related to “${intent.resolvedQuery}”. The linked pages below are the direct context for this answer; check the legal catalog for current country-specific offers.`;
   return { status: "lead", summary, directResponse, ...sourceGroups, searchedAt: new Date().toISOString(), resolvedQuery: intent.resolvedQuery, correctionNote: intent.correctionNote, limitation: "This direct answer compiles public-web context. It remains separate from the licensed country-specific legal catalog, which is the place to confirm current offers." };
 }

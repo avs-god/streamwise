@@ -95,3 +95,13 @@ The Assistant includes a natural-language action-review panel for explicit priva
 ## Community rating and critic-reference completion — 2026-08-25
 
 Recommendation cards now expose a live Streamwise community-rating summary and direct members to the linked title page to read or contribute ratings and reviews. Title pages retain source-linked IMDb, Rotten Tomatoes, RogerEbert.com, Variety, and Guardian destinations without copying external scores or protected review text. Nested title threads, replies, review reporting, visibility filtering, and moderator actions remain available and covered by focused contracts.
+
+## Final portable backend and direct-GPT configuration — 2026-08-25
+
+Added Firebase deployment assets (`firebase.json`, `firestore.rules`, and `firestore.indexes.json`) plus `FIREBASE_MIGRATION.md`. The document maps current SQL entities to Firebase Authentication UID-scoped and public/moderated Firestore collections, provides emulator and cutover guidance, and keeps all credentials out of source control. Grounded AI now supports an explicit server-only `AI_PROVIDER=openai` path through the standard Responses API with web search, `OPENAI_API_KEY`, optional base URL, and model name; the managed provider remains a fallback until the independent values are configured.
+
+The final suite passed **19 Vitest files / 90 tests**, **9 Playwright checks**, TypeScript, production build, and static validation of the Firebase artifacts. The built server remains independently runnable with provider values absent, using candid inactive-provider states.
+
+## Direct Leaving Soon grounded response — 2026-08-25
+
+Leaving Soon title and provider queries now display the validated direct grounded-model response in the public-web lane, followed by inspectable reporting and public-discussion links. The lane stays explicitly separate from confirmed saved-title snapshots and unverified community reports, and cannot create a departure date, legal offer, or alert by itself. Focused grounded-AI contracts, the browser suite, TypeScript, and the production build passed after this update.
