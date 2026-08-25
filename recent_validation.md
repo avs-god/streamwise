@@ -1,5 +1,9 @@
 # Recent Visual Validation — 2026-08-24
 
+## Expanded synthetic member and moderation browser validation
+
+The browser suite now covers explicit watched-record consent and error recovery, private post-watch loading/failure/retry recovery, title-linked nested reply creation, individual reply reporting, and an administrator’s reply-hide moderation action. These seven browser checks use only intercepted synthetic responses; no real member account, user-generated content, or provider account is touched. The full release suite passed **17 Vitest files / 83 tests**, **7 Playwright checks**, TypeScript, and production build.
+
 ## Intercepted grounded-AI browser verification
 
 The browser suite now uses a synthetic intercepted member response to verify visible grounded-AI success, title-correction, loading, and failure states. The test never invokes external research, writes a community item, or accesses a real account. The current release suite passed **17 Vitest files / 83 tests**, **3 Playwright checks**, TypeScript, and production build.

@@ -22,6 +22,75 @@ async function mockSignedInResearch(page: import("@playwright/test").Page, mode:
   });
 }
 
+async function mockMemberWatchlist(page: import("@playwright/test").Page, state: { watched: boolean; signalsError: boolean }) {
+  const member = { id: 998, openId: "browser-watchlist-member", name: "Browser Watchlist", email: null, loginMethod: "test", role: "user", createdAt: "2026-08-25T00:00:00.000Z", updatedAt: "2026-08-25T00:00:00.000Z", lastSignedIn: "2026-08-25T00:00:00.000Z" };
+  const item = { id: 41, userId: 998, tmdbId: 27205, mediaType: "movie", title: "Synthetic Film", posterPath: null, releaseDate: "2026-01-01", plannedFor: "someday", note: null, monitorAvailability: true, availabilityRegion: "IN", providerNamesJson: "[]", availabilityCheckedAt: null, availabilitySourceUrl: null, createdAt: "2026-08-25T00:00:00.000Z", updatedAt: "2026-08-25T00:00:00.000Z" };
+  await page.route("**/api/trpc/**", async route => {
+    const procedures = new URL(route.request().url()).pathname.split("/api/trpc/")[1]?.split(",") ?? [];
+    const entries = procedures.map(procedure => {
+      if (procedure === "auth.me") return { result: { data: { json: member } } };
+      if (procedure === "watchlist.list") return { result: { data: { json: [item] } } };
+      if (procedure === "viewingSignals.list" && state.signalsError) return { error: { json: { message: "Synthetic watched-status failure", code: -32603, data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500, path: "viewingSignals.list" } } } };
+      if (procedure === "viewingSignals.list") return { result: { data: { json: state.watched ? [{ id: 52, userId: 998, tmdbId: 27205, mediaType: "movie", title: "Synthetic Film", status: "watched", recordedAt: "2026-08-25T00:00:00.000Z", createdAt: "2026-08-25T00:00:00.000Z", updatedAt: "2026-08-25T00:00:00.000Z" }] : [] } } };
+      if (procedure === "viewingSignals.record") { state.watched = true; return { result: { data: { json: { success: true } } } }; }
+      return { result: { data: { json: [] } } };
+    });
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(entries) });
+  });
+}
+
+async function mockMemberPostWatch(page: import("@playwright/test").Page, state: { current: "loading" | "error" | "success"; release?: () => void }) {
+  const member = { id: 997, openId: "browser-post-watch-member", name: "Browser Picks", email: null, loginMethod: "test", role: "user", createdAt: "2026-08-25T00:00:00.000Z", updatedAt: "2026-08-25T00:00:00.000Z", lastSignedIn: "2026-08-25T00:00:00.000Z" };
+  await page.route("**/api/trpc/**", async route => {
+    const procedures = new URL(route.request().url()).pathname.split("/api/trpc/")[1]?.split(",") ?? [];
+    if (procedures.includes("viewingSignals.postWatchPicks") && state.current === "loading") await new Promise<void>(resolve => { state.release = resolve; });
+    const entries = procedures.map(procedure => {
+      if (procedure === "auth.me") return { result: { data: { json: member } } };
+      if (procedure === "catalog.discover") return { result: { data: { json: { configured: false, titles: [], explanation: "Catalog is safely on standby." } } } };
+      if (procedure === "viewingSignals.postWatchPicks" && state.current === "error") return { error: { json: { message: "Synthetic post-watch failure", code: -32603, data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500, path: "viewingSignals.postWatchPicks" } } } };
+      if (procedure === "viewingSignals.postWatchPicks") return { result: { data: { json: { configured: false, titles: [], recordedCount: 1, explanation: "Synthetic private post-watch recovery state." } } } };
+      return { result: { data: { json: [] } } };
+    });
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(entries) });
+  });
+}
+
+async function mockMemberDiscussion(page: import("@playwright/test").Page, state: { childCreated: boolean; reportedReply: boolean }) {
+  const member = { id: 996, openId: "browser-discussion-member", name: "Browser Discussion", email: null, loginMethod: "test", role: "user", createdAt: "2026-08-25T00:00:00.000Z", updatedAt: "2026-08-25T00:00:00.000Z", lastSignedIn: "2026-08-25T00:00:00.000Z" };
+  const thread = { id: 81, userId: 996, tmdbId: 27205, title: "Synthetic Film", mediaType: "movie", topic: "discussion", headline: "Synthetic title-linked discussion", body: "A careful synthetic discussion body with enough context for browser coverage.", containsSpoilers: false, shareAttribution: false, status: "visible", createdAt: "2026-08-25T00:00:00.000Z", updatedAt: "2026-08-25T00:00:00.000Z", contributorName: null };
+  const parent = { id: 91, threadId: 81, userId: 996, parentReplyId: null, body: "Synthetic parent reply", containsSpoilers: false, shareAttribution: false, status: "visible", createdAt: "2026-08-25T00:00:00.000Z", updatedAt: "2026-08-25T00:00:00.000Z", contributorName: null };
+  const child = { ...parent, id: 92, parentReplyId: 91, body: "Synthetic nested reply" };
+  await page.route("**/api/trpc/**", async route => {
+    const procedures = new URL(route.request().url()).pathname.split("/api/trpc/")[1]?.split(",") ?? [];
+    const entries = procedures.map(procedure => {
+      if (procedure === "auth.me") return { result: { data: { json: member } } };
+      if (procedure === "community.list") return { result: { data: { json: [] } } };
+      if (procedure === "community.threads") return { result: { data: { json: [thread] } } };
+      if (procedure === "community.replies") return { result: { data: { json: state.childCreated ? [parent, child] : [parent] } } };
+      if (procedure === "community.reply") { state.childCreated = true; return { result: { data: { json: { success: true } } } }; }
+      if (procedure === "community.reportThread") { state.reportedReply = true; return { result: { data: { json: { success: true } } } }; }
+      return { result: { data: { json: [] } } };
+    });
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(entries) });
+  });
+}
+
+async function mockAdminModeration(page: import("@playwright/test").Page, state: { replyHidden: boolean }) {
+  const admin = { id: 995, openId: "browser-admin", name: "Browser Admin", email: null, loginMethod: "test", role: "admin", createdAt: "2026-08-25T00:00:00.000Z", updatedAt: "2026-08-25T00:00:00.000Z", lastSignedIn: "2026-08-25T00:00:00.000Z" };
+  await page.route("**/api/trpc/**", async route => {
+    const procedures = new URL(route.request().url()).pathname.split("/api/trpc/")[1]?.split(",") ?? [];
+    const entries = procedures.map(procedure => {
+      if (procedure === "auth.me") return { result: { data: { json: admin } } };
+      if (procedure === "community.list" || procedure === "community.threads") return { result: { data: { json: [] } } };
+      if (procedure === "community.moderation.reports") return { result: { data: { json: [] } } };
+      if (procedure === "community.moderation.threadReports") return { result: { data: { json: state.replyHidden ? [] : [{ id: 201, threadId: 81, replyId: 91, reporterUserId: 994, reason: "misleading", detail: null, status: "open", createdAt: "2026-08-25T00:00:00.000Z" }] } } };
+      if (procedure === "community.moderation.setReplyStatus") { state.replyHidden = true; return { result: { data: { json: { success: true } } } }; }
+      return { result: { data: { json: [] } } };
+    });
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(entries) });
+  });
+}
+
 test("keyboard users can navigate core routes and submit the labelled discovery form", async ({ page }) => {
   await page.goto("/");
 
@@ -150,4 +219,64 @@ test("intercepted member browser states render grounded AI success, loading, and
   await search.fill("Another title");
   await search.press("Enter");
   await expect(page.getByRole("alert")).toContainText("Public-web research could not be completed");
+});
+
+test("intercepted member records watched only on explicit consent and recovers private-status errors", async ({ page }) => {
+  const state = { watched: false, signalsError: false };
+  await mockMemberWatchlist(page, state);
+  await page.goto("/watchlist");
+  await expect(page.getByText("Synthetic Film")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Record as watched" })).toBeVisible();
+  expect(state.watched).toBe(false);
+  await page.getByRole("button", { name: "Record as watched" }).click();
+  await expect(page.getByText(/Recorded/)).toBeVisible();
+  expect(state.watched).toBe(true);
+
+  state.signalsError = true;
+  await page.reload();
+  await expect(page.getByRole("alert")).toContainText("Private watched-record status could not be loaded");
+  state.signalsError = false;
+  await page.getByRole("button", { name: "Try again" }).click();
+  await expect(page.getByRole("button", { name: "Remove record" })).toBeVisible();
+});
+
+test("intercepted member post-watch picks render loading, failure, and retry recovery", async ({ page }) => {
+  const state: { current: "loading" | "error" | "success"; release?: () => void } = { current: "loading" };
+  await mockMemberPostWatch(page, state);
+  await page.goto("/recommendations");
+  await expect(page.getByText("Loading your optional member-recorded viewing signals…")).toBeVisible();
+  state.current = "error";
+  state.release?.();
+  await expect(page.getByRole("alert")).toContainText("Private post-watch picks could not be loaded");
+  state.current = "success";
+  await page.getByRole("button", { name: "Try again" }).click();
+  await expect(page.getByText("Synthetic private post-watch recovery state.")).toBeVisible();
+});
+
+test("intercepted member creates a nested title-linked reply and reports an individual reply", async ({ page }) => {
+  const state = { childCreated: false, reportedReply: false };
+  await mockMemberDiscussion(page, state);
+  await page.goto("/community?tmdbId=27205&mediaType=movie&title=Synthetic%20Film");
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Synthetic title-linked discussion" }).click();
+  await expect(page.getByText("Synthetic parent reply")).toBeVisible();
+  await page.getByRole("button", { name: "Reply to this comment" }).click();
+  await page.getByLabel("Reply to comment").fill("A nested synthetic response");
+  await page.getByRole("button", { name: "Post reply" }).click();
+  await expect(page.getByText("Synthetic nested reply")).toBeVisible();
+  expect(state.childCreated).toBe(true);
+  await page.getByRole("button", { name: "Report reply" }).first().click();
+  await page.getByRole("button", { name: "Send reply report" }).click();
+  await expect.poll(() => state.reportedReply).toBe(true);
+});
+
+test("intercepted admin hides a reported reply through the private moderation panel", async ({ page }) => {
+  const state = { replyHidden: false };
+  await mockAdminModeration(page, state);
+  await page.goto("/community");
+  await expect(page.getByRole("heading", { name: "Open community reports" })).toBeVisible();
+  await page.getByRole("button", { name: "Hide reply" }).click();
+  await expect.poll(() => state.replyHidden).toBe(true);
+  await expect(page.getByText("No open discussion reports.")).toBeVisible();
 });

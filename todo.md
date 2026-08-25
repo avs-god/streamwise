@@ -89,7 +89,8 @@
 - [x] Add deterministic private post-watch picks derived only from member-recorded viewing signals, with a visible consent explanation.
 - [x] Add explicit loading, empty, and error states for private watched-record status in Watchlist.
 - [x] Add explicit loading, empty, and error states for private post-watch picks in Recommendations.
-- [ ] Add regression and signed-in browser coverage for watched-record controls and private post-watch query recovery.
+- [x] Add regression and signed-in browser coverage for watched-record controls and private post-watch query recovery.
+- [x] Add signed-in synthetic-browser coverage for Recommendations private post-watch picks covering loading, error, and retry recovery behavior.
 - [x] Add a unified-intelligence explanation that distinguishes a member’s consented signals, public community aggregates, and public unverified discussion without profiling private community activity.
 - [x] Make verified country-specific “Where to stream” provider names and offer types the visually primary field on every catalog-backed search, recommendation, and title card.
 - [x] Add source-boundary and accessibility tests for consented viewing signals, aggregate-only community context, and prominent provider availability states.
@@ -117,8 +118,9 @@
 - [x] Add reply-to-reply controls and nested reply rendering using parentReplyId, with behavioral tests for the nested conversation flow.
 - [x] Add and run a nested-reply regression covering parent selection, child submission with parentReplyId, and nested rendering order.
 - [x] Add a real nested-reply UI behavioral test that selects a parent, submits a child with parentReplyId, and asserts nested order.
-- [ ] Add authenticated browser validation for nested reply, reply-report, and moderation recovery interactions.
-- [ ] Verify title-context thread creation, nested reply, reporting, and moderation interactions in browser-level coverage.
+- [x] Add authenticated browser validation for nested reply, reply-report, and moderation recovery interactions.
+- [x] Verify title-context thread creation, nested reply, reporting, and moderation interactions in browser-level coverage.
+- [x] Add synthetic-admin browser coverage for moderation status actions and visible-content recovery after a report.
 - [x] Improve simple movie or series public-web queries so the AI context attempts useful source-linked reading and discussion leads before presenting an insufficient-evidence fallback.
 - [x] Replace the generic insufficient-evidence text with a constructive fallback that preserves source boundaries and directs users to verified country-specific offers for actual availability.
 - [x] Add tests for simple “where to watch” wording, useful source-link retention, and exclusion of unverified leads from legal provider facts.
