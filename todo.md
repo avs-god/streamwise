@@ -186,3 +186,8 @@
 - [x] Add a standard portable Google OAuth configuration path suitable for independent hosting.
 - [x] Isolate platform-coupled auth assumptions behind portable OAuth and document the independent deployment variables for auth, catalog, email, and sponsored placement providers.
 - [x] Validate the standalone production build and runtime with provider credentials absent, using candid inactive-provider states.
+- [x] Add source-linked IMDb and Rotten Tomatoes destination cards without reproducing ratings or review content absent a direct license or approved API.
+- [x] Add public-web-grounded critic and movie-blog reading destinations with inspectable source links, clearly separate from licensed legal offers and member reviews.
+- [x] Expand movie title and recommendation cards with community rating summaries, review counts, member-contributed reviews, and authenticated rating/review controls.
+- [x] Complete nested community threads, replies, title-linked discussion, review contribution, reporting, moderation, empty, loading, and error states.
+- [x] Add review, thread, source-boundary, accessibility, responsive, unit, browser, type, production-build, and independent-runtime validation for the expanded community release.
