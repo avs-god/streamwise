@@ -131,7 +131,7 @@ describe("private profile data access", () => {
     await caller.alerts.updatePreferences(preferences);
     await caller.subscriptions.action({ id: 22, actionType: "paused" });
 
-    expect(mockedDb.updateAlertPreferences).toHaveBeenCalledWith(19, preferences);
+    expect(mockedDb.updateAlertPreferences).toHaveBeenCalledWith(19, { ...preferences, emailEnabled: false, emailRecommendationEnabled: false, emailLeavingSoonEnabled: false, emailCommunityEnabled: false });
     expect(mockedDb.applySubscriptionAction).toHaveBeenCalledWith(19, 22, "paused", null, null);
     expect(mockedDb.createAlert).not.toHaveBeenCalled();
   });

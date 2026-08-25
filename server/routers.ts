@@ -186,7 +186,7 @@ export const appRouter = router({
   }),
   alerts: router({
     preferences: protectedProcedure.query(({ ctx }) => getAlertPreferences(ctx.user.id)),
-    updatePreferences: protectedProcedure.input(z.object({ availabilityChangesEnabled: z.boolean(), renewalRemindersEnabled: z.boolean(), pauseRemindersEnabled: z.boolean(), renewalLeadDays: z.number().int().min(1).max(60), inAppEnabled: z.boolean() })).mutation(({ ctx, input }) => updateAlertPreferences(ctx.user.id, input)),
+    updatePreferences: protectedProcedure.input(z.object({ availabilityChangesEnabled: z.boolean(), renewalRemindersEnabled: z.boolean(), pauseRemindersEnabled: z.boolean(), renewalLeadDays: z.number().int().min(1).max(60), inAppEnabled: z.boolean(), emailEnabled: z.boolean().optional().default(false), emailRecommendationEnabled: z.boolean().optional().default(false), emailLeavingSoonEnabled: z.boolean().optional().default(false), emailCommunityEnabled: z.boolean().optional().default(false) })).mutation(({ ctx, input }) => updateAlertPreferences(ctx.user.id, input)),
     providerSubscriptions: protectedProcedure.query(({ ctx }) => getProviderAlertSubscriptions(ctx.user.id)),
     setProviderSubscription: protectedProcedure.input(z.object({ providerName: z.string().trim().min(1).max(150), region: z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/), enabled: z.boolean() })).mutation(async ({ ctx, input }) => { await setProviderAlertSubscription(ctx.user.id, input); return { success: true }; }),
     list: protectedProcedure.query(async ({ ctx }) => { await syncRenewalAlerts(ctx.user.id); return getAlerts(ctx.user.id); }),

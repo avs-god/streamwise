@@ -157,7 +157,7 @@ export async function getAlertPreferences(userId: number) {
   return (await db.select().from(alertPreferences).where(eq(alertPreferences.userId, userId)).limit(1))[0];
 }
 
-export async function updateAlertPreferences(userId: number, input: { availabilityChangesEnabled: boolean; renewalRemindersEnabled: boolean; pauseRemindersEnabled: boolean; renewalLeadDays: number; inAppEnabled: boolean }) {
+export async function updateAlertPreferences(userId: number, input: { availabilityChangesEnabled: boolean; renewalRemindersEnabled: boolean; pauseRemindersEnabled: boolean; renewalLeadDays: number; inAppEnabled: boolean; emailEnabled: boolean; emailRecommendationEnabled: boolean; emailLeavingSoonEnabled: boolean; emailCommunityEnabled: boolean }) {
   const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
   await db.insert(alertPreferences).values({ userId, ...input }).onDuplicateKeyUpdate({ set: input });
   return getAlertPreferences(userId);

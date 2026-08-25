@@ -88,6 +88,10 @@ export const alertPreferences = mysqlTable("alertPreferences", {
   pauseRemindersEnabled: boolean("pauseRemindersEnabled").default(false).notNull(),
   renewalLeadDays: int("renewalLeadDays").default(7).notNull(),
   inAppEnabled: boolean("inAppEnabled").default(false).notNull(),
+  emailEnabled: boolean("emailEnabled").default(false).notNull(),
+  emailRecommendationEnabled: boolean("emailRecommendationEnabled").default(false).notNull(),
+  emailLeavingSoonEnabled: boolean("emailLeavingSoonEnabled").default(false).notNull(),
+  emailCommunityEnabled: boolean("emailCommunityEnabled").default(false).notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 

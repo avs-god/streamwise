@@ -165,3 +165,24 @@
 - [x] Add a member Settings page for recommendation preferences, alert controls, and account-scoped experience settings.
 - [x] Add portable GitHub/Vercel deployment preparation and documentation, retaining server-side runtime requirements and safe environment-variable configuration.
 - [x] Add unit, browser, accessibility, responsive, type, production-build, and independent runtime validation for cross-site saves, commands, settings, and portable deployment.
+- [x] Add direct authenticated quick-save access from catalog discovery and AI recommendation results through the title save flow, preserving resolved country-specific offer snapshots.
+- [x] Extend confirmation-first natural-language commands for explicit private watchlist and wallet lifecycle actions, with safe unsupported-command fallback.
+- [x] Organize legal discovery results into distinct TMDb/JustWatch, Watchmode, and Movie of the Night source panels with country, timestamp, outbound-link, attribution, unavailable, and disagreement states.
+- [x] Refine wallet, Leaving Soon, Assistant, Community, Watchlist, and Recommendations with clearer next actions and cross-links while retaining source and member boundaries.
+- [x] Add GitHub export instructions and Vercel environment-variable configuration guidance without embedding credentials or attempting unauthorized repository changes.
+- [x] Complete unit, browser, accessibility, responsive, type, production-build, source-contract, and independent runtime validation for the final release.
+- [x] Add member-controlled notification-preference persistence for email-ready updates, recommendations, tracked availability, Leaving Soon, and community activity, with no messages sent until an approved delivery provider is configured.
+- [x] Define an email-delivery integration boundary, sender requirements, consent and unsubscribe expectations, and safe future scheduling workflow without exposing credentials.
+- [x] Add an inactive future-premium pricing page and entitlement plan that communicates proposed value without enabling billing, checkout, or paid access.
+- [x] Document a staged premium rollout and provisional pricing hypotheses, clearly labelled as unlaunched and subject to validation.
+- [x] Add notification-preference, premium-state, consent, browser, type, production-build, and independent-runtime validation for the final release.
+- [x] Add a clearly labelled, non-intrusive sponsored-placement framework that never changes legal-offer ranking, source attribution, recommendations, or subscription decisions.
+- [x] Add sponsored-placement disclosure and inactive-provider behavior, with no third-party ad network enabled until approved placement values are supplied.
+- [x] Add sponsored-placement source-boundary, accessibility, responsive, browser, type, production-build, and independent-runtime validation.
+- [x] Prepare production email delivery configuration for a verified sender and opt-in enforcement; real delivery activates only after the intentionally blank provider values are supplied.
+- [x] Prepare compliant advertising configuration using empty publisher identifiers; labelled placement activates only after approved AdSense values are supplied.
+- [x] Complete the requested discovery, command, notification, community, wallet, watchlist, leaving-soon, assistant, recommendation, and portability work within documented provider and consent boundaries.
+- [x] Keep email and advertising environment values empty in the repository and application configuration, while making the integrations activate safely only after approved deployment-time values are supplied.
+- [x] Add a standard portable Google OAuth configuration path suitable for independent hosting.
+- [x] Isolate platform-coupled auth assumptions behind portable OAuth and document the independent deployment variables for auth, catalog, email, and sponsored placement providers.
+- [x] Validate the standalone production build and runtime with provider credentials absent, using candid inactive-provider states.

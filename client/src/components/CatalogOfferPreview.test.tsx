@@ -15,7 +15,7 @@ describe("CatalogOfferPreview", () => {
   it("renders verified provider names and offer categories when the catalog resolves a title", () => {
     queryState.value = { data: { configured: true, title: { checkedAt: "2026-08-24T00:00:00.000Z", offers: [{ id: 1, name: "Netflix", type: "stream" }, { id: 2, name: "Prime Video", type: "rent" }] } } };
     render(<CatalogOfferPreview titleId={1} mediaType="movie" region="IN" language="en-US" />);
-    expect(screen.getByLabelText("Verified legal offers in IN")).toHaveTextContent("Netflix · Included");
+    expect(screen.getByLabelText("Legal offer comparison in IN")).toHaveTextContent("Netflix · Included");
     expect(screen.getByText("Prime Video · Rent")).toBeInTheDocument();
     expect(screen.getByText(/JustWatch via TMDb/)).toBeInTheDocument();
   });
