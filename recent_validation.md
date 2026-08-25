@@ -1,5 +1,9 @@
 # Recent Visual Validation — 2026-08-24
 
+## Intercepted grounded-AI browser verification
+
+The browser suite now uses a synthetic intercepted member response to verify visible grounded-AI success, title-correction, loading, and failure states. The test never invokes external research, writes a community item, or accesses a real account. The current release suite passed **17 Vitest files / 83 tests**, **3 Playwright checks**, TypeScript, and production build.
+
 ## Provider-specific confirmed-snapshot alert validation
 
 Migration `0011_gray_scarlet_witch.sql` created the member-scoped provider alert subscription table and was applied successfully. The release passed **17 Vitest files / 83 tests**, two Playwright checks, TypeScript, and production build. The standalone production server returned HTTP `200` for `/`, `/updates`, `/leaving-soon`, and the emitted JavaScript asset, then was stopped. The new filter was unit-tested against changed legal snapshot offers only; no live provider account, community report, or public-web lead was used as alert input.

@@ -35,7 +35,7 @@
 - [x] Verify AI-assisted search, loading and error states, keyboard access, responsive layouts, and production build.
 - [x] Enforce a strict schema for AI research output and reject or sanitize language that asserts unverified availability, leaving-soon dates, or platform-transfer facts.
 - [x] Add UI and failure-path tests for AI provenance labels, limitations, malformed responses, loading, and insufficient-evidence states.
-- [ ] Exercise successful, loading, and failure-path AI research states through browser-driven verification without using real consumer data.
+- [x] Exercise successful, loading, and failure-path AI research states through browser-driven verification without using real consumer data.
 - [x] Include public social and community discussion sources by default as a separately labeled, unverified result group with source links and no copied personal content.
 - [x] Preserve a hard boundary that public discussion cannot change legal availability, leaving-soon, platform-transfer, tracking, alert, or subscription-decision facts.
 - [x] Add provenance and privacy tests for community-result labeling, social source links, and exclusion from verified catalog evidence.
