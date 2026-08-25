@@ -1,7 +1,9 @@
-import { describe, expect, it } from "vitest";
-import { discoverCatalog, getRecommendedCatalogTitles, getSimilarCatalogTitles, mergePostWatchRecommendations, parseTitleSuggestion } from "./catalog";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { discoverCatalog, getRecommendedCatalogTitles, getSimilarCatalogTitles, mergePostWatchRecommendations, parseTitleSuggestion, setCatalogAccessTokenForTests } from "./catalog";
 
 describe("title query correction", () => {
+  beforeAll(() => setCatalogAccessTokenForTests(""));
+  afterAll(() => setCatalogAccessTokenForTests(null));
   it("accepts a distinct bounded title suggestion", () => {
     expect(parseTitleSuggestion('{"query":"Tenet"}', "tencet")).toBe("Tenet");
   });

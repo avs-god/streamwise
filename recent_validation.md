@@ -67,3 +67,9 @@ The current browser-session audit of `/watchlist` explicitly returned the signed
 The browser suite now also checks two rendered public flows: keyboard discovery/navigation, and the title-detail no-catalog source boundary together with signed-out Watchlist and Community contribution boundaries. Both Playwright tests passed without writing member records or submitting public content.
 
 The configured title-page contract now renders permitted TMDb metadata only when supplied—release date, runtime, and genres—and provides clearly labelled outbound reading destinations for RogerEbert.com, Variety, and The Guardian alongside the existing IMDb and Rotten Tomatoes references. The full release suite passed after this addition: **17 Vitest files / 77 tests**, two Playwright tests, TypeScript, and production build. These links remain outbound references; Streamwise imports neither scores nor review text.
+
+## Recovered final provider-comparison release — 2026-08-25
+
+After sandbox recovery, the final release suite passed **18 Vitest files / 84 tests**, **8 Playwright checks**, TypeScript, and production build. The compiled app independently returned HTTP `200` for Discovery, Recommendations, Wallet, title detail, Leaving Soon, and its generated asset. Its production title procedure returned separately labelled TMDb/JustWatch, Watchmode, and Streaming Availability by Movie of the Night records for India; no credential was exposed.
+
+The rendered `/title/movie/27205` consumer route showed primary TMDb/JustWatch country offers, a separate timestamped Watchmode panel retaining SD/HD/4K details, and a separate timestamped Streaming Availability panel with provider outbound links, price when returned, and the required visible Movie of the Night attribution. The direct grounded response remains public-web context only; it cannot make discussion material a legal availability fact.

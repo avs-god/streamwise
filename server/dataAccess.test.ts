@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
+import { setCatalogAccessTokenForTests } from "./catalog";
+
+setCatalogAccessTokenForTests("");
 
 const mockedDb = vi.hoisted(() => ({
   getWatchlist: vi.fn(async (userId: number) => [{ id: 11, userId, title: `Private list for ${userId}` }]),

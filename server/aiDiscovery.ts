@@ -4,10 +4,10 @@ const COMMUNITY_HOSTS = ["reddit.com", "x.com", "twitter.com", "instagram.com", 
 const ASSERTIVE_AVAILABILITY = /\b(currently available|now streaming|watch(?:ing)? on|is on (?:netflix|prime|disney|hulu|mubi|apple tv)|leaving soon|leaves? (?:netflix|prime|disney|hulu|mubi|apple tv)|has moved to|moved to (?:netflix|prime|disney|hulu|mubi|apple tv)|transferred to)\b/i;
 
 export type ResearchSource = { title: string; url: string; domain: string; kind: "reporting" | "community" };
-export type DiscoveryResearch = { status: "lead" | "insufficient"; sources: ResearchSource[]; communitySources: ResearchSource[]; summary: string; searchedAt: string; limitation: string; resolvedQuery: string; correctionNote: string | null };
+export type DiscoveryResearch = { status: "lead" | "insufficient"; sources: ResearchSource[]; communitySources: ResearchSource[]; summary: string; directResponse: string; searchedAt: string; limitation: string; resolvedQuery: string; correctionNote: string | null };
 type Citation = { title?: string; url?: string };
 type RawResponse = { choices?: Array<{ message?: { content?: string | Array<unknown>; metadata?: { source_citations?: Citation[] } } }> };
-type StructuredLead = { status: "lead" | "insufficient"; summary: string };
+type StructuredLead = { status: "lead" | "insufficient"; summary: string; directResponse: string };
 
 function textContent(content: unknown) {
   if (typeof content === "string") return content;
@@ -19,6 +19,7 @@ export function cleanSummary(content: string) { return content.replace(/\[([^\]]
 
 const titleAliases: Array<{ typo: RegExp; query: string; note: string }> = [
   { typo: /^tencet(?:\s+(?:movie|film))?$/i, query: "Tenet 2020 film", note: "Searched the likely title **Tenet** (2020) for “Tencet”." },
+  { typo: /^(?:where\s+to\s+watch\s+)?2012(?:\s+(?:movie|film))?(?:\s+where\s+to\s+watch)?$/i, query: "2012 2009 film", note: "Searched the likely title **2012** (2009 film) for your question." },
 ];
 
 /** Conservative, explainable title-intent correction before the grounded web search. */
@@ -57,13 +58,14 @@ export function parseStructuredLead(content: unknown): StructuredLead | null {
     const parsed = JSON.parse(textContent(content)) as Partial<StructuredLead>;
     if ((parsed.status !== "lead" && parsed.status !== "insufficient") || typeof parsed.summary !== "string") return null;
     const summary = cleanSummary(parsed.summary);
-    if (!summary || summary.length > 900 || ASSERTIVE_AVAILABILITY.test(summary)) return null;
-    return { status: parsed.status, summary };
+    const directResponse = cleanSummary(typeof parsed.directResponse === "string" ? parsed.directResponse : parsed.summary);
+    if (!summary || summary.length > 900 || !directResponse || directResponse.length > 1200 || ASSERTIVE_AVAILABILITY.test(summary) || ASSERTIVE_AVAILABILITY.test(directResponse)) return null;
+    return { status: parsed.status, summary, directResponse };
   } catch { return null; }
 }
 
 function insufficient(message: string, resolvedQuery: string, correctionNote: string | null): DiscoveryResearch {
-  return { status: "insufficient", summary: message, sources: [], communitySources: [], searchedAt: new Date().toISOString(), correctionNote, resolvedQuery, limitation: "AI research is not a substitute for a licensed legal-availability source. Public discussion links, when shown, are unverified and never used as availability or recommendation evidence." };
+  return { status: "insufficient", summary: message, directResponse: message, sources: [], communitySources: [], searchedAt: new Date().toISOString(), correctionNote, resolvedQuery, limitation: "AI research is not a substitute for a licensed legal-availability source. Public discussion links, when shown, are unverified and never used as availability or recommendation evidence." };
 }
 
 export async function researchDiscoveryLead(input: { query: string; region: string; language: string }): Promise<DiscoveryResearch> {
@@ -75,10 +77,10 @@ export async function researchDiscoveryLead(input: { query: string; region: stri
     model,
     maxCompletionTokens: 850,
     messages: [
-      { role: "system", content: "You are Streamwise Research, a grounded public-web discovery assistant. First resolve a likely film or series title typo, then use web search to find inspectable source links. Search for relevant reporting, official announcements, film or television criticism, guides, and public community discussion. For a simple title query or wording such as ‘where to watch’, search the resolved title and return at least one inspectable reading or discussion source whenever one exists. Do not treat any result as an availability fact. Never state that a title is currently available, now streaming, leaving soon, has left a service, or has transferred platforms. Use cautious language such as ‘a report discusses’ or ‘a public discussion raises an unverified possibility’. Do not repeat handles, names, comments, ratings, personal data, prices, or subscription credentials from community sources. Prefer official provider/studio announcements and reputable reporting for the concise summary. Output only the requested JSON object; the application will attach and label source citations independently." },
+      { role: "system", content: "You are Streamwise Research, a grounded public-web discovery assistant. First resolve a likely film or series title typo, then use web search to find inspectable source links. Search relevant reporting, official announcements, film or television criticism, guides, and public community discussion. Write summary as a concise overview and directResponse as the complete conversational answer displayed verbatim after application validation. Both must be source-linked syntheses, never copied post text. Do not treat any result as an availability fact. Never state that a title is currently available, now streaming, leaving soon, has left a service, or has transferred platforms. If a discussion mentions a service, say only that it raises an unverified possibility and direct the user to the legal catalog. Do not repeat handles, names, comments, ratings, personal data, prices, or credentials. Output only JSON; citations are attached independently." },
       { role: "user", content: `Original research question: ${input.query}\nResolved search intent: ${intent.resolvedQuery}\nViewer country: ${input.region.toUpperCase()}\nLanguage context: ${input.language}\nThe verified legal catalog remains the authority for current offers.` },
     ],
-    outputSchema: { name: "streamwise_research_lead", strict: true, schema: { type: "object", properties: { status: { type: "string", enum: ["lead", "insufficient"] }, summary: { type: "string", minLength: 1, maxLength: 900 } }, required: ["status", "summary"], additionalProperties: false } },
+    outputSchema: { name: "streamwise_research_lead", strict: true, schema: { type: "object", properties: { status: { type: "string", enum: ["lead", "insufficient"] }, summary: { type: "string", minLength: 1, maxLength: 900 }, directResponse: { type: "string", minLength: 1, maxLength: 1200 } }, required: ["status", "summary", "directResponse"], additionalProperties: false } },
     tools: [{ type: "web_search", web_search_tool_conf: { search_context_size: "medium" } } as unknown as Tool],
     toolChoice: "auto",
   } as Parameters<typeof invokeLLM>[0]);
@@ -91,5 +93,6 @@ export async function researchDiscoveryLead(input: { query: string; region: stri
     return insufficient(`I searched “${intent.resolvedQuery}” but could not ground an inspectable public reading link in this session.${correction} You can still use the legal catalog for current country-specific offers.`, intent.resolvedQuery, intent.correctionNote);
   }
   const summary = structured.status === "lead" ? structured.summary : `Public-web reading and discussion links related to “${intent.resolvedQuery}” are collected below. Treat them as context, not current availability.`;
-  return { status: "lead", summary, ...sourceGroups, searchedAt: new Date().toISOString(), resolvedQuery: intent.resolvedQuery, correctionNote: intent.correctionNote, limitation: "All public-web and community items are unverified leads, not availability, leaving-soon, or platform-transfer facts. They do not affect tracking, alerts, or subscription decisions. Confirm current offers in the legal catalog and inspect each source directly." };
+  const directResponse = structured.status === "lead" ? structured.directResponse : `I found inspectable public-web context related to “${intent.resolvedQuery}”. Read the linked sources below, but use the legal catalog to confirm current country-specific offers.`;
+  return { status: "lead", summary, directResponse, ...sourceGroups, searchedAt: new Date().toISOString(), resolvedQuery: intent.resolvedQuery, correctionNote: intent.correctionNote, limitation: "All public-web and community items are unverified leads, not availability, leaving-soon, or platform-transfer facts. They do not affect tracking, alerts, or subscription decisions. Confirm current offers in the legal catalog and inspect each source directly." };
 }

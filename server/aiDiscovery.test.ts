@@ -33,7 +33,8 @@ describe("AI discovery provenance", () => {
   });
   it("rejects malformed or availability-asserting summaries", () => {
     expect(parseStructuredLead('{"status":"lead","summary":"This series is now streaming on Netflix."}')).toBeNull();
-    expect(parseStructuredLead('{"status":"lead","summary":"A report may be relevant."}')).toEqual({ status: "lead", summary: "A report may be relevant." });
+    expect(parseStructuredLead('{"status":"lead","summary":"A public report may be relevant.","directResponse":"The film is now streaming on Netflix."}')).toBeNull();
+    expect(parseStructuredLead('{"status":"lead","summary":"A report may be relevant."}')).toEqual({ status: "lead", summary: "A report may be relevant.", directResponse: "A report may be relevant." });
     expect(parseStructuredLead("not JSON")).toBeNull();
   });
   it("returns insufficient evidence when a valid AI summary lacks inspectable citations", async () => {

@@ -111,6 +111,20 @@ async function mockMemberTitleReview(page: import("@playwright/test").Page, stat
 }
 
 test("keyboard users can navigate core routes and submit the labelled discovery form", async ({ page }) => {
+  await page.route("**/api/trpc/**", async route => {
+    const procedures = new URL(route.request().url()).pathname.split("/api/trpc/")[1]?.split(",") ?? [];
+    const entries = procedures.map(procedure => {
+      if (procedure === "auth.me") return { result: { data: { json: null } } };
+      if (procedure === "catalog.status") return { result: { data: { json: { configured: false, provider: "TMDb / JustWatch" } } } };
+      if (procedure === "catalog.search") return { result: { data: { json: { configured: false, titles: [], checkedAt: null, correctedQuery: null } } } };
+      if (procedure === "catalog.title") return { result: { data: { json: { configured: false, title: null } } } };
+      if (procedure === "catalog.discover") return { result: { data: { json: { configured: false, titles: [], explanation: "Catalog is safely on standby." } } } };
+      if (procedure === "community.titleRatingSummary") return { result: { data: { json: { count: 0, average: null } } } };
+      if (procedure === "community.titleReviews") return { result: { data: { json: [] } } };
+      return { result: { data: { json: [] } } };
+    });
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(entries) });
+  });
   await page.goto("/");
 
   const search = page.getByLabel("Search for a movie or series");
@@ -119,7 +133,7 @@ test("keyboard users can navigate core routes and submit the labelled discovery 
   await page.keyboard.type("A local title");
   await page.keyboard.press("Enter");
   await expect(page.getByText("Legal catalog is safely on standby.")).toBeVisible();
-  await expect(page.getByText("Unverified web context.")).toBeVisible();
+  await expect(page.getByText("Ask in everyday language.")).toBeVisible();
   await expect(page.locator('[aria-label="Verified legal catalog results"]')).toBeVisible();
 
   const country = page.getByLabel("Country");
@@ -230,7 +244,7 @@ test("intercepted member browser states render grounded AI success, loading, and
   await expect(page.getByText("Resolving title intent and grounding public sources…")).toBeVisible();
   mode.current = "success";
   mode.release?.();
-  await expect(page.getByText("Grounded public-web context")).toBeVisible();
+  await expect(page.getByText("Direct grounded model response")).toBeVisible();
   await expect(page.getByText("Searched the likely title Tenet (2020) for “Tencet”.")).toBeVisible();
   await expect(page.getByRole("link", { name: /Tenet film guide/ })).toBeVisible();
   await page.setViewportSize({ width: 375, height: 812 });

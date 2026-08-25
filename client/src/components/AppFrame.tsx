@@ -2,11 +2,12 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ArrowUpRight, BellRing, Bookmark, Bot, Compass, LayoutList, LogOut, MessagesSquare, TimerReset, WalletCards } from "lucide-react";
+import { ArrowUpRight, BellRing, Bookmark, Bot, Compass, LayoutList, LogOut, MessagesSquare, Star, TimerReset, WalletCards } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 const nav = [
   { href: "/", label: "Discover", icon: Compass },
+  { href: "/recommendations", label: "Recommendations", icon: Star },
   { href: "/watchlist", label: "Watchlist", icon: Bookmark },
   { href: "/wallet", label: "Wallet", icon: WalletCards },
   { href: "/decisions", label: "Decisions", icon: LayoutList },

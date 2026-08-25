@@ -1,6 +1,7 @@
 import { invokeLLM, listLLMModels } from "./_core/llm";
 
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
+let catalogTokenTestOverride: string | null = null;
 
 export type OfferType = "stream" | "ads" | "free" | "rent" | "buy";
 
@@ -9,6 +10,10 @@ export type CatalogProvider = {
   name: string;
   logoPath: string | null;
   type: OfferType;
+  source: "TMDb / JustWatch" | "Watchmode" | "Streaming Availability by Movie of the Night";
+  webUrl: string | null;
+  price?: string | null;
+  detail?: string | null;
 };
 
 export type CatalogTitle = {
@@ -26,12 +31,21 @@ export type CatalogDetail = CatalogTitle & {
   genres: string[];
   providerPageUrl: string | null;
   offers: CatalogProvider[];
+  watchmodeOffers: CatalogProvider[];
+  watchmodeStatus: "available" | "unavailable" | "not_configured";
+  watchmodeCheckedAt: string | null;
+  streamingAvailabilityOffers: CatalogProvider[];
+  streamingAvailabilityStatus: "available" | "unavailable" | "not_configured";
+  streamingAvailabilityCheckedAt: string | null;
   checkedAt: string;
 };
 
 function getAccessToken() {
-  return process.env.TMDB_ACCESS_TOKEN?.trim() ?? "";
+  return catalogTokenTestOverride ?? process.env.TMDB_ACCESS_TOKEN?.trim() ?? "";
 }
+
+/** Test-only seam retaining deterministic no-token contract coverage with a configured live catalog. */
+export function setCatalogAccessTokenForTests(token: string | null) { catalogTokenTestOverride = token; }
 
 export function isCatalogConfigured() {
   return Boolean(getAccessToken());
@@ -63,6 +77,42 @@ function cleanLanguage(language: string) {
 
 function cleanRegion(region: string) {
   return /^[A-Z]{2}$/.test(region) ? region : "US";
+}
+
+function getWatchmodeKey() { return process.env.WATCHMODE_API_KEY?.trim() ?? ""; }
+function getStreamingAvailabilityKey() { return process.env.RAPIDAPI_STREAMING_AVAILABILITY_KEY?.trim() ?? ""; }
+
+async function getWatchmodeOffers(input: { tmdbId: number; mediaType: "movie" | "tv"; region: string }) {
+  const apiKey = getWatchmodeKey();
+  if (!apiKey) return { offers: [] as CatalogProvider[], status: "not_configured" as const, checkedAt: null };
+  try {
+    const field = input.mediaType === "movie" ? "tmdb_movie_id" : "tmdb_tv_id";
+    const lookup = await fetch(`https://api.watchmode.com/v1/search/?search_field=${field}&search_value=${input.tmdbId}&apiKey=${encodeURIComponent(apiKey)}`);
+    if (!lookup.ok) return { offers: [] as CatalogProvider[], status: "unavailable" as const, checkedAt: new Date().toISOString() };
+    const mapped = await lookup.json() as { title_results?: Array<{ id?: number }> };
+    const watchmodeId = mapped.title_results?.[0]?.id;
+    if (!watchmodeId) return { offers: [] as CatalogProvider[], status: "unavailable" as const, checkedAt: new Date().toISOString() };
+    const sources = await fetch(`https://api.watchmode.com/v1/title/${watchmodeId}/sources/?apiKey=${encodeURIComponent(apiKey)}&regions=${cleanRegion(input.region)}`);
+    if (!sources.ok) return { offers: [] as CatalogProvider[], status: "unavailable" as const, checkedAt: new Date().toISOString() };
+    const data = await sources.json() as Array<{ source_id?: number; name?: string; type?: string; region?: string; web_url?: string | null; format?: string | null }>;
+    const typeMap: Record<string, OfferType> = { sub: "stream", free: "free", rent: "rent", buy: "buy", purchase: "buy", tv: "ads" };
+    const offers = data.filter(item => item.region === cleanRegion(input.region) && item.source_id && item.name && item.type && typeMap[item.type]).map(item => ({ id: item.source_id!, name: item.name!, logoPath: null, type: typeMap[item.type!], source: "Watchmode" as const, webUrl: item.web_url ?? null, detail: item.format ?? null }));
+    return { offers, status: "available" as const, checkedAt: new Date().toISOString() };
+  } catch { return { offers: [] as CatalogProvider[], status: "unavailable" as const, checkedAt: new Date().toISOString() }; }
+}
+
+async function getStreamingAvailabilityOffers(input: { tmdbId: number; mediaType: "movie" | "tv"; region: string }) {
+  const apiKey = getStreamingAvailabilityKey();
+  if (!apiKey) return { offers: [] as CatalogProvider[], status: "not_configured" as const, checkedAt: null };
+  try {
+    const tmdbRef = `${input.mediaType === "movie" ? "movie" : "tv"}/${input.tmdbId}`;
+    const response = await fetch(`https://streaming-availability.p.rapidapi.com/shows/${encodeURIComponent(tmdbRef)}?country=${cleanRegion(input.region).toLowerCase()}`, { headers: { "x-rapidapi-key": apiKey, "x-rapidapi-host": "streaming-availability.p.rapidapi.com" } });
+    if (!response.ok) return { offers: [] as CatalogProvider[], status: "unavailable" as const, checkedAt: new Date().toISOString() };
+    const data = await response.json() as { streamingOptions?: Record<string, Array<{ service?: { name?: string }; type?: string; link?: string | null; price?: { formatted?: string | null } | null }>> };
+    const typeMap: Record<string, OfferType> = { subscription: "stream", free: "free", rent: "rent", buy: "buy", addon: "stream" };
+    const offers = (data.streamingOptions?.[cleanRegion(input.region).toLowerCase()] ?? []).flatMap((item, index) => item.service?.name && item.type && typeMap[item.type] ? [{ id: -(index + 1), name: item.service.name, logoPath: null, type: typeMap[item.type], source: "Streaming Availability by Movie of the Night" as const, webUrl: item.link ?? null, price: item.price?.formatted ?? null }] : []);
+    return { offers, status: "available" as const, checkedAt: new Date().toISOString() };
+  } catch { return { offers: [] as CatalogProvider[], status: "unavailable" as const, checkedAt: new Date().toISOString() }; }
 }
 
 export function parseTitleSuggestion(content: unknown, originalQuery: string): string | null {
@@ -177,6 +227,8 @@ export async function getCatalogDetail(input: {
       >;
     };
   };
+  const watchmodePromise = getWatchmodeOffers({ tmdbId: input.id, mediaType: input.mediaType, region: input.region });
+  const streamingAvailabilityPromise = getStreamingAvailabilityOffers({ tmdbId: input.id, mediaType: input.mediaType, region: input.region });
   const data = await tmdbFetch<DetailResponse>(
     `/${input.mediaType}/${input.id}?append_to_response=watch%2Fproviders&language=${encodeURIComponent(cleanLanguage(input.language))}`,
   );
@@ -194,9 +246,11 @@ export async function getCatalogDetail(input: {
       const key = `${type}:${provider.provider_id}`;
       if (seen.has(key)) return [];
       seen.add(key);
-      return [{ id: provider.provider_id, name: provider.provider_name, logoPath: provider.logo_path ?? null, type }];
+      return [{ id: provider.provider_id, name: provider.provider_name, logoPath: provider.logo_path ?? null, type, source: "TMDb / JustWatch" as const, webUrl: regionalOffers?.link ?? null }];
     }),
   );
+  const watchmode = await watchmodePromise;
+  const streamingAvailability = await streamingAvailabilityPromise;
 
   return {
     configured: true,
@@ -212,6 +266,12 @@ export async function getCatalogDetail(input: {
       genres: data.genres?.map(genre => genre.name) ?? [],
       providerPageUrl: regionalOffers?.link ?? null,
       offers,
+      watchmodeOffers: watchmode.offers,
+      watchmodeStatus: watchmode.status,
+      watchmodeCheckedAt: watchmode.checkedAt,
+      streamingAvailabilityOffers: streamingAvailability.offers,
+      streamingAvailabilityStatus: streamingAvailability.status,
+      streamingAvailabilityCheckedAt: streamingAvailability.checkedAt,
       checkedAt: new Date().toISOString(),
     },
   };

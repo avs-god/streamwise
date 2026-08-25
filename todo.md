@@ -66,9 +66,9 @@
 - [x] Add an accessible home-page article popup explaining the original consumer problem, the product’s response, and the source/data limitations.
 - [x] Verify all original problem themes—title discovery, platform churn, leaving-soon uncertainty, subscription sprawl, cancellation friction, and legal alternatives—are addressed in the working product.
 - [x] Review the problem-to-feature audit against Discovery, tracking, Community leaving-soon leads, Wallet decisions, provider guidance, and legal alternatives before closing the original-problem verification.
-- [ ] Complete type, unit, integration, browser, responsive, accessibility, and production-build validation for all new workflows.
-- [ ] Consolidate evidence-backed validation records for each newly added workflow before closing the broad release-validation item.
-- [ ] Create a per-workflow validation matrix mapping each newly added workflow to type, unit, browser, accessibility, responsive, and runtime evidence.
+- [x] Complete type, unit, integration, browser, responsive, accessibility, and production-build validation for all new workflows.
+- [x] Consolidate evidence-backed validation records for each newly added workflow before closing the broad release-validation item.
+- [x] Create a per-workflow validation matrix mapping each newly added workflow to type, unit, browser, accessibility, responsive, and runtime evidence.
 - [x] Rerun and record the full release suite after the final responsive/browser and validation-matrix changes.
 - [x] Expand the validation matrix with an explicit populated responsive-evidence row for discovery AI, recommendation cards, and title rating/review controls.
 - [x] Refine the expanded mobile navigation so each destination remains legible and keyboard reachable without compressed labels.
@@ -88,7 +88,7 @@
 - [x] Add automated tests for deterministic recommendation inputs, rating aggregation, review validation, fact separation, and accessible title-detail workflows.
 - [x] Add explicit deterministic discovery tests for popular, top-rated, genre, similar, private post-watch, and adaptation-disclosure modes.
 - [x] Add explicit title/community review validation and moderation-visibility tests without seeding review content.
-- [ ] Validate search, recommendation, title-detail, rating, review, responsive, keyboard, type, test, and production-build flows.
+- [x] Validate search, recommendation, title-detail, rating, review, responsive, keyboard, type, test, and production-build flows.
 - [x] Capture and document desktop/mobile responsive validation for search, recommendations, title detail, ratings, and reviews.
 - [x] Add explicit desktop/mobile responsive validation for populated discovery/AI results, Recommendations cards, and authenticated title rating/review controls.
 - [x] Add explicit authenticated keyboard coverage for title rating activation and review-composer input.
