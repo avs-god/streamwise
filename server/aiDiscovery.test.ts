@@ -21,7 +21,7 @@ describe("AI discovery provenance", () => {
   });
   it("returns a source-linked lead only from strict validated model JSON", async () => {
     const result = await researchDiscoveryLead({ query: "Where might this series move?", region: "IN", language: "en-IN" });
-    expect(result.status).toBe("lead"); expect(result.sources).toHaveLength(1); expect(result.communitySources).toHaveLength(1); expect(result.limitation).toMatch(/unverified leads/i);
+    expect(result.status).toBe("lead"); expect(result.sources).toHaveLength(1); expect(result.communitySources).toHaveLength(1); expect(result.limitation).toMatch(/licensed country-specific legal catalog/i);
     expect(mockedLlm.invokeLLM).toHaveBeenCalledWith(expect.objectContaining({ outputSchema: expect.any(Object) }));
   });
   it("resolves the reported Tencet typo before issuing a grounded title search", async () => {
@@ -31,9 +31,10 @@ describe("AI discovery provenance", () => {
     expect(result.correctionNote).toMatch(/Tenet/);
     expect(mockedLlm.invokeLLM).toHaveBeenLastCalledWith(expect.objectContaining({ messages: expect.arrayContaining([expect.objectContaining({ content: expect.stringContaining("Resolved search intent: Tenet 2020 film") })]) }));
   });
-  it("rejects malformed or availability-asserting summaries", () => {
+  it("rejects malformed, assertive summary, or sensitive direct-answer content while retaining a direct web answer", () => {
     expect(parseStructuredLead('{"status":"lead","summary":"This series is now streaming on Netflix."}')).toBeNull();
-    expect(parseStructuredLead('{"status":"lead","summary":"A public report may be relevant.","directResponse":"The film is now streaming on Netflix."}')).toBeNull();
+    expect(parseStructuredLead('{"status":"lead","summary":"A public report may be relevant.","directResponse":"Search results say the film is now streaming on Netflix; confirm it in the legal catalog."}')).toEqual({ status: "lead", summary: "A public report may be relevant.", directResponse: "Search results say the film is now streaming on Netflix; confirm it in the legal catalog." });
+    expect(parseStructuredLead('{"status":"lead","summary":"A public report may be relevant.","directResponse":"Use API key abc123 to continue."}')).toBeNull();
     expect(parseStructuredLead('{"status":"lead","summary":"A report may be relevant."}')).toEqual({ status: "lead", summary: "A report may be relevant.", directResponse: "A report may be relevant." });
     expect(parseStructuredLead("not JSON")).toBeNull();
   });
@@ -59,6 +60,13 @@ describe("AI discovery provenance", () => {
     expect(result.sources).toHaveLength(1);
     expect(result.summary).toMatch(/context, not current availability/i);
   });
+  it("resolves 2012 and returns the direct source-attributed web answer", async () => {
+    mockedLlm.invokeLLM.mockResolvedValueOnce({ choices: [{ message: { content: JSON.stringify({ status: "lead", summary: "Public pages discuss ways to watch the 2009 film.", directResponse: "Search results point to public pages discussing where to watch 2012 (2009); open the links below for the details, then confirm your current India offer in the legal catalog." }), metadata: { source_citations: [{ title: "2012 guide", url: "https://film.example/2012-guide" }] } } }] });
+    const result = await researchDiscoveryLead({ query: "where to watch 2012 movie", region: "IN", language: "en-IN" });
+    expect(result.resolvedQuery).toBe("2012 2009 film");
+    expect(result.directResponse).toMatch(/Search results point/i);
+    expect(result.sources).toHaveLength(1);
+  });
   it("strips inline citation URLs from summaries", () => { expect(cleanSummary("Read [this](https://example.com) now.")).toBe("Read this now."); });
   it("keeps community discussion visibly separate in the consumer UI", () => {
     const panel = readFileSync(resolve(process.cwd(), "client/src/components/AiResearchPanel.tsx"), "utf8");
@@ -67,6 +75,7 @@ describe("AI discovery provenance", () => {
     expect(panel).toContain("availability, alert, tracking, or recommendation evidence");
     expect(panel).toContain('role="alert"');
     expect(panel).toContain("No grounded source returned");
-    expect(panel).toContain("Resolving title intent and grounding public sources");
+    expect(panel).toContain("Direct web-grounded answer");
+    expect(panel).toContain("Searching the public web and compiling a direct answer");
   });
 });

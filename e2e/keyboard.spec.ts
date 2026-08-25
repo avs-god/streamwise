@@ -216,11 +216,24 @@ test("keyboard users can navigate core routes and submit the labelled discovery 
 });
 
 test("public browser routes preserve no-catalog and private-member boundaries", async ({ page }) => {
+  const titleStandbyRoute = async (route: import("@playwright/test").Route) => {
+    const procedures = new URL(route.request().url()).pathname.split("/api/trpc/")[1]?.split(",") ?? [];
+    const entries = procedures.map(procedure => {
+      if (procedure === "auth.me") return { result: { data: { json: null } } };
+      if (procedure === "catalog.title") return { result: { data: { json: { configured: false, title: null } } } };
+      if (procedure === "community.titleRatingSummary") return { result: { data: { json: { count: 0, average: null } } } };
+      if (procedure === "community.titleReviews") return { result: { data: { json: [] } } };
+      return { result: { data: { json: [] } } };
+    });
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(entries) });
+  };
+  await page.route("**/api/trpc/**", titleStandbyRoute);
   await page.goto("/title/movie/1");
   await expect(page.getByRole("heading", { name: "Legal catalog is safely on standby." })).toBeVisible();
   await expect(page.getByText("external rating references, and related titles")).toBeVisible();
   await expect(page.getByText("IMDb, Rotten Tomatoes, and critic-reading links are unavailable")).toBeVisible();
   await expect(page.getByText("What Streamwise members think.")).toBeVisible();
+  await page.unroute("**/api/trpc/**", titleStandbyRoute);
 
   await page.goto("/watchlist");
   await expect(page.getByText("Make this list yours.")).toBeVisible();
@@ -241,10 +254,10 @@ test("intercepted member browser states render grounded AI success, loading, and
   const search = page.getByLabel("Search for a movie or series");
   await search.fill("Tencet");
   await search.press("Enter");
-  await expect(page.getByText("Resolving title intent and grounding public sources…")).toBeVisible();
+  await expect(page.getByText("Searching the public web and compiling a direct answer…")).toBeVisible();
   mode.current = "success";
   mode.release?.();
-  await expect(page.getByText("Direct grounded model response")).toBeVisible();
+  await expect(page.getByText("Direct web-grounded answer")).toBeVisible();
   await expect(page.getByText("Searched the likely title Tenet (2020) for “Tencet”.")).toBeVisible();
   await expect(page.getByRole("link", { name: /Tenet film guide/ })).toBeVisible();
   await page.setViewportSize({ width: 375, height: 812 });
@@ -255,6 +268,30 @@ test("intercepted member browser states render grounded AI success, loading, and
   await search.fill("Another title");
   await search.press("Enter");
   await expect(page.getByRole("alert")).toContainText("Public-web research could not be completed");
+});
+
+test("AI recommendation chat converts a natural-language taste prompt into catalog-backed picks", async ({ page }) => {
+  await page.route("**/api/trpc/**", async route => {
+    const procedures = new URL(route.request().url()).pathname.split("/api/trpc/")[1]?.split(",") ?? [];
+    const entries = procedures.map(procedure => {
+      if (procedure === "auth.me") return { result: { data: { json: null } } };
+      if (procedure === "catalog.discover") return { result: { data: { json: { configured: false, titles: [], explanation: "Catalog standby for deterministic browser coverage." } } } };
+      if (procedure === "catalog.offerPreview") return { result: { data: { json: { configured: false, offers: [], checkedAt: null, sourceUrl: null } } } };
+      if (procedure === "ai.recommend") return { result: { data: { json: { configured: true, explanation: "Catalog results matching the requested genre.", interpretation: { query: "smart science fiction", referenceTitle: "Inception", genreId: 878, mediaType: "movie", originalLanguage: null, explanation: "A science-fiction movie request related to Inception." }, titles: [{ id: 777, mediaType: "movie", title: "Synthetic Space Film", originalTitle: null, overview: "A catalog-backed synthetic result for browser coverage.", posterPath: null, releaseDate: "2026-01-01" }] } } } };
+      return { result: { data: { json: [] } } };
+    });
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(entries) });
+  });
+  await page.goto("/recommendations");
+  const prompt = page.getByLabel("Ask for a recommendation");
+  await prompt.fill("I want a tense science-fiction film like Inception");
+  await page.getByRole("button", { name: "Get recommendations" }).click();
+  await expect(page.getByText("A science-fiction movie request related to Inception.")).toBeVisible();
+  await expect(page.getByText("Synthetic Space Film")).toBeVisible();
+  await expect(page.getByText("Catalog results matching the requested genre.", { exact: true })).toBeVisible();
+  await page.setViewportSize({ width: 375, height: 812 });
+  await expect(page.getByText("Synthetic Space Film")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
 test("intercepted member records watched only on explicit consent and recovers private-status errors", async ({ page }) => {

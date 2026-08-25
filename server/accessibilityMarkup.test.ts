@@ -70,7 +70,7 @@ describe("keyboard and semantic-accessibility regression checks", () => {
   it("keeps public-web research loading, failure, sign-in, and provenance states visible", () => {
     const panel = source("client/src/components/AiResearchPanel.tsx");
     expect(panel).toContain("Sign in for web context");
-    expect(panel).toContain("Resolving title intent and grounding public sources");
+    expect(panel).toContain("Searching the public web and compiling a direct answer");
     expect(panel).toContain("Public-web research could not be completed");
     expect(panel).toContain("No grounded source returned");
     expect(panel).toContain("Separate evidence");

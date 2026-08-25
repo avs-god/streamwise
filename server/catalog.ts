@@ -310,6 +310,39 @@ export async function getRecommendedCatalogTitles(input: { id: number; mediaType
   return { configured: true, titles: (data.results ?? []).slice(0, 8).map(item => ({ id: item.id, mediaType: input.mediaType, title: item.title ?? item.name ?? "Untitled", originalTitle: item.original_title ?? item.original_name ?? null, overview: item.overview ?? null, posterPath: item.poster_path ?? null, releaseDate: item.release_date ?? item.first_air_date ?? null })) };
 }
 
+export type RecommendationCatalogIntent = {
+  query: string;
+  referenceTitle: string | null;
+  genreId: number | null;
+  mediaType: "movie" | "tv" | "all";
+  originalLanguage: string | null;
+};
+
+/** Catalog-only recommendation retrieval for an AI-interpreted taste prompt. */
+export async function recommendCatalogFromIntent(intent: RecommendationCatalogIntent, language: string): Promise<{ configured: boolean; titles: CatalogTitle[]; explanation: string }> {
+  if (!isCatalogConfigured()) return { configured: false, titles: [], explanation: "Live catalog recommendations are not configured, so Streamwise will not invent suggestions." };
+  const types = intent.mediaType === "all" ? ["movie", "tv"] as const : [intent.mediaType] as const;
+  const seen = new Set<number>();
+  const addUnique = (titles: CatalogTitle[]) => titles.filter(title => !seen.has(title.id) && (seen.add(title.id), true));
+  const reference = intent.referenceTitle ? await searchCatalog({ query: intent.referenceTitle, language }) : null;
+  const matched = reference?.titles.find(title => intent.mediaType === "all" || title.mediaType === intent.mediaType) ?? reference?.titles[0];
+  if (matched) {
+    const related = await getRecommendedCatalogTitles({ id: matched.id, mediaType: matched.mediaType, language });
+    const titles = addUnique(related.titles).slice(0, 12);
+    if (titles.length) return { configured: true, titles, explanation: `Catalog recommendations related to ${matched.title}.` };
+  }
+  type Result = { id: number; title?: string; name?: string; original_title?: string; original_name?: string; overview?: string; poster_path?: string | null; release_date?: string; first_air_date?: string };
+  const pages = await Promise.all(types.map(async mediaType => {
+    const query = new URLSearchParams({ include_adult: "false", include_video: "false", language: cleanLanguage(language), page: "1", sort_by: "popularity.desc" });
+    if (intent.genreId) query.set("with_genres", String(intent.genreId));
+    if (intent.originalLanguage && /^[a-z]{2}$/.test(intent.originalLanguage)) query.set("with_original_language", intent.originalLanguage);
+    const data = await tmdbFetch<{ results?: Result[] }>(`/discover/${mediaType}?${query.toString()}`);
+    return (data.results ?? []).map(item => ({ id: item.id, mediaType, title: item.title ?? item.name ?? "Untitled", originalTitle: item.original_title ?? item.original_name ?? null, overview: item.overview ?? null, posterPath: item.poster_path ?? null, releaseDate: item.release_date ?? item.first_air_date ?? null }));
+  }));
+  const titles = addUnique(pages.flat()).slice(0, 12);
+  return { configured: true, titles, explanation: intent.genreId || intent.originalLanguage ? "Catalog results matching the requested genre or original-language preference." : "Catalog popular results used because the prompt did not resolve to a specific title or genre filter." };
+}
+
 /** Stable post-watch merge: signal order determines priority; already-recorded titles and duplicates are excluded. */
 export function mergePostWatchRecommendations(sources: Array<{ sourceId: number; titles: CatalogTitle[] }>, excludedIds: number[]) {
   const excluded = new Set(excludedIds);

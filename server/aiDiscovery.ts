@@ -16,6 +16,8 @@ function textContent(content: unknown) {
 }
 
 export function cleanSummary(content: string) { return content.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, "$1").replace(/https?:\/\/\S+/g, "").replace(/\s+/g, " ").trim().slice(0, 900); }
+function cleanDirectResponse(content: string) { return content.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, "$1").replace(/https?:\/\/\S+/g, "").replace(/\s+/g, " ").trim().slice(0, 1500); }
+function hasSensitiveContent(content: string) { return /\b(?:api[_ -]?key|password|secret|bearer\s+[a-z0-9._-]+)\b|[\w.+-]+@[\w.-]+\.[a-z]{2,}/i.test(content); }
 
 const titleAliases: Array<{ typo: RegExp; query: string; note: string }> = [
   { typo: /^tencet(?:\s+(?:movie|film))?$/i, query: "Tenet 2020 film", note: "Searched the likely title **Tenet** (2020) for “Tencet”." },
@@ -58,8 +60,8 @@ export function parseStructuredLead(content: unknown): StructuredLead | null {
     const parsed = JSON.parse(textContent(content)) as Partial<StructuredLead>;
     if ((parsed.status !== "lead" && parsed.status !== "insufficient") || typeof parsed.summary !== "string") return null;
     const summary = cleanSummary(parsed.summary);
-    const directResponse = cleanSummary(typeof parsed.directResponse === "string" ? parsed.directResponse : parsed.summary);
-    if (!summary || summary.length > 900 || !directResponse || directResponse.length > 1200 || ASSERTIVE_AVAILABILITY.test(summary) || ASSERTIVE_AVAILABILITY.test(directResponse)) return null;
+    const directResponse = cleanDirectResponse(typeof parsed.directResponse === "string" ? parsed.directResponse : parsed.summary);
+    if (!summary || summary.length > 900 || !directResponse || directResponse.length > 1500 || ASSERTIVE_AVAILABILITY.test(summary) || hasSensitiveContent(directResponse)) return null;
     return { status: parsed.status, summary, directResponse };
   } catch { return null; }
 }
@@ -77,7 +79,7 @@ export async function researchDiscoveryLead(input: { query: string; region: stri
     model,
     maxCompletionTokens: 850,
     messages: [
-      { role: "system", content: "You are Streamwise Research, a grounded public-web discovery assistant. First resolve a likely film or series title typo, then use web search to find inspectable source links. Search relevant reporting, official announcements, film or television criticism, guides, and public community discussion. Write summary as a concise overview and directResponse as the complete conversational answer displayed verbatim after application validation. Both must be source-linked syntheses, never copied post text. Do not treat any result as an availability fact. Never state that a title is currently available, now streaming, leaving soon, has left a service, or has transferred platforms. If a discussion mentions a service, say only that it raises an unverified possibility and direct the user to the legal catalog. Do not repeat handles, names, comments, ratings, personal data, prices, or credentials. Output only JSON; citations are attached independently." },
+      { role: "system", content: "You are Streamwise’s conversational public-web movie assistant. Resolve likely title typos, then use web search and answer the user directly in natural language as a helpful web-search assistant would. Search reporting, official pages, guides, criticism, and public discussion. In directResponse, synthesise what the public web says, including provider names or prices when a source itself reports them, with natural attribution such as ‘search results indicate’ or ‘a public discussion says’. Do not copy posts, handles, personal data, credentials, or private material. The app separately displays inspectable source links and a licensed country-specific legal catalog; never call public-web findings verified, confirmed, or current legal availability. summary is a shorter neutral overview. Output JSON only." },
       { role: "user", content: `Original research question: ${input.query}\nResolved search intent: ${intent.resolvedQuery}\nViewer country: ${input.region.toUpperCase()}\nLanguage context: ${input.language}\nThe verified legal catalog remains the authority for current offers.` },
     ],
     outputSchema: { name: "streamwise_research_lead", strict: true, schema: { type: "object", properties: { status: { type: "string", enum: ["lead", "insufficient"] }, summary: { type: "string", minLength: 1, maxLength: 900 }, directResponse: { type: "string", minLength: 1, maxLength: 1200 } }, required: ["status", "summary", "directResponse"], additionalProperties: false } },
@@ -93,6 +95,6 @@ export async function researchDiscoveryLead(input: { query: string; region: stri
     return insufficient(`I searched “${intent.resolvedQuery}” but could not ground an inspectable public reading link in this session.${correction} You can still use the legal catalog for current country-specific offers.`, intent.resolvedQuery, intent.correctionNote);
   }
   const summary = structured.status === "lead" ? structured.summary : `Public-web reading and discussion links related to “${intent.resolvedQuery}” are collected below. Treat them as context, not current availability.`;
-  const directResponse = structured.status === "lead" ? structured.directResponse : `I found inspectable public-web context related to “${intent.resolvedQuery}”. Read the linked sources below, but use the legal catalog to confirm current country-specific offers.`;
-  return { status: "lead", summary, directResponse, ...sourceGroups, searchedAt: new Date().toISOString(), resolvedQuery: intent.resolvedQuery, correctionNote: intent.correctionNote, limitation: "All public-web and community items are unverified leads, not availability, leaving-soon, or platform-transfer facts. They do not affect tracking, alerts, or subscription decisions. Confirm current offers in the legal catalog and inspect each source directly." };
+  const directResponse = structured.status === "lead" ? structured.directResponse : `I found public-web results related to “${intent.resolvedQuery}”. The linked pages below are the direct context for this answer; check the legal catalog for current country-specific offers.`;
+  return { status: "lead", summary, directResponse, ...sourceGroups, searchedAt: new Date().toISOString(), resolvedQuery: intent.resolvedQuery, correctionNote: intent.correctionNote, limitation: "This direct answer compiles public-web context. It remains separate from the licensed country-specific legal catalog, which is the place to confirm current offers." };
 }

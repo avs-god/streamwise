@@ -45,10 +45,11 @@ import {
   setCommunityThreadReplyStatus,
   setProviderAlertSubscription,
 } from "./db";
-import { discoverCatalog, getCatalogDetail, getRecommendedCatalogTitles, getSimilarCatalogTitles, isCatalogConfigured, mergePostWatchRecommendations, searchCatalog } from "./catalog";
+import { discoverCatalog, getCatalogDetail, getRecommendedCatalogTitles, getSimilarCatalogTitles, isCatalogConfigured, mergePostWatchRecommendations, recommendCatalogFromIntent, searchCatalog } from "./catalog";
 import { refreshTrackedTitle, refreshTrackedTitlesForUser } from "./trackingService";
 import { syncRenewalAlerts } from "./alertService";
 import { researchDiscoveryLead } from "./aiDiscovery";
+import { interpretRecommendationPrompt } from "./aiRecommendations";
 import { askPersonalAssistant } from "./personalAssistant";
 import { buildSubscriptionDecisions } from "./recommendations";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -92,6 +93,11 @@ export const appRouter = router({
   }),
   ai: router({
     research: protectedProcedure.input(z.object({ query: z.string().trim().min(3).max(220), region: z.string().regex(/^[A-Z]{2}$/), language: z.string().min(2).max(20) })).mutation(({ input }) => researchDiscoveryLead(input)),
+    recommend: publicProcedure.input(z.object({ prompt: z.string().trim().min(3).max(500), language: z.string().min(2).max(20).default("en-US") })).mutation(async ({ input }) => {
+      const interpretation = await interpretRecommendationPrompt(input.prompt);
+      const catalog = await recommendCatalogFromIntent(interpretation, input.language);
+      return { ...catalog, interpretation };
+    }),
   }),
   assistant: router({
     ask: protectedProcedure.input(z.object({ question: z.string().trim().min(2).max(750) })).mutation(({ ctx, input }) => askPersonalAssistant(ctx.user.id, input.question)),

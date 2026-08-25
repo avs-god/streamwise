@@ -73,3 +73,9 @@ The configured title-page contract now renders permitted TMDb metadata only when
 After sandbox recovery, the final release suite passed **18 Vitest files / 84 tests**, **8 Playwright checks**, TypeScript, and production build. The compiled app independently returned HTTP `200` for Discovery, Recommendations, Wallet, title detail, Leaving Soon, and its generated asset. Its production title procedure returned separately labelled TMDb/JustWatch, Watchmode, and Streaming Availability by Movie of the Night records for India; no credential was exposed.
 
 The rendered `/title/movie/27205` consumer route showed primary TMDb/JustWatch country offers, a separate timestamped Watchmode panel retaining SD/HD/4K details, and a separate timestamped Streaming Availability panel with provider outbound links, price when returned, and the required visible Movie of the Night attribution. The direct grounded response remains public-web context only; it cannot make discussion material a legal availability fact.
+
+## Conversational web answer and AI recommendation chat — 2026-08-25
+
+The AI web-answer flow now presents a direct conversational synthesis of public search context while keeping inspectable links and a separate licensed country-specific offer path. Its contract covers 2012-title resolution, direct wording, source retention, sensitive-content rejection, and legal-catalog separation.
+
+Recommendations now includes an AI chat-style prompt for genres, languages, moods, and liked titles or shows. The model only translates the request into bounded catalog filters; returned picks come from TMDb catalog similarity or discover routes. Validation passed: **19 Vitest files / 88 tests**, **9 Playwright checks**, TypeScript, and production build, with desktop and 375px visual review of the recommendation chat.

@@ -147,3 +147,9 @@
 - [x] Rework straightforward AI title queries so likely misspellings such as “Tencet” return a corrected title and useful inspectable public-reading links when available.
 - [x] Replace the generic no-link AI dead end with a query-specific grounded fallback that remains useful without treating public-web material as legal availability.
 - [x] Add regression coverage for grounded simple-title AI responses, source-link retention, and the legal-catalog separation.
+- [x] Make the AI public-web response more direct and conversational for natural-language title and “where to watch” questions, while preserving a clear distinction from licensed country-specific legal offers.
+- [x] Add regression coverage for direct conversational web responses, 2012-title intent handling, inspectable source links, and legal-catalog separation.
+- [x] Add a conversational AI recommendation search on Recommendations that accepts natural-language tastes, genres, languages, moods, and liked titles or shows.
+- [x] Translate recommendation prompts into explainable catalog-backed retrieval inputs and return movie or series suggestions without fabricating titles or availability.
+- [x] Add accessible loading, empty, error, result, title-selection, and legal-offer-preview states for the AI recommendation search.
+- [x] Add unit, browser, type, and production-build coverage for conversational recommendation intent and results.
