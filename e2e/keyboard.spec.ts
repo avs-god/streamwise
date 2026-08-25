@@ -283,14 +283,19 @@ test("AI recommendation chat converts a natural-language taste prompt into catal
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(entries) });
   });
   await page.goto("/recommendations");
+  await page.getByLabel("Recommendation language filter").selectOption("hi");
+  await page.getByLabel("Recommendation runtime filter").selectOption("120");
   const prompt = page.getByLabel("Ask for a recommendation");
   await prompt.fill("I want a tense science-fiction film like Inception");
   await page.getByRole("button", { name: "Get recommendations" }).click();
   await expect(page.getByText("A science-fiction movie request related to Inception.")).toBeVisible();
-  await expect(page.getByText("Synthetic Space Film")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Film · 2026 Synthetic Space Film/ })).toBeVisible();
   await expect(page.getByText("Catalog results matching the requested genre.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Sign in to add optional source-linked public-web context to this request.")).toBeVisible();
+  await page.getByRole("button", { name: "Synthetic Space Film", exact: true }).click();
+  await expect(page.getByText(/More like Synthetic Space Film/).first()).toBeVisible();
   await page.setViewportSize({ width: 375, height: 812 });
-  await expect(page.getByText("Synthetic Space Film")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Film · 2026 Synthetic Space Film/ })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 

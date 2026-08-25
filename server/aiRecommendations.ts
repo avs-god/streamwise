@@ -15,7 +15,7 @@ export function parseRecommendationInterpretation(content: unknown, fallbackQuer
     const originalLanguage = typeof value.originalLanguage === "string" && /^[a-z]{2}$/.test(value.originalLanguage) ? value.originalLanguage : null;
     const modelExplanation = typeof value.explanation === "string" ? value.explanation.trim().replace(/\s+/g, " ").slice(0, 280) : "";
     const explanation = modelExplanation || "Catalog filters interpreted from your request.";
-    return query.length >= 2 ? { query, referenceTitle, genreId, mediaType, originalLanguage, explanation } : null;
+    return query.length >= 2 ? { query, referenceTitle, genreId, mediaType, originalLanguage, maxRuntimeMinutes: null, explanation } : null;
   } catch { return null; }
 }
 

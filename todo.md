@@ -153,3 +153,15 @@
 - [x] Translate recommendation prompts into explainable catalog-backed retrieval inputs and return movie or series suggestions without fabricating titles or availability.
 - [x] Add accessible loading, empty, error, result, title-selection, and legal-offer-preview states for the AI recommendation search.
 - [x] Add unit, browser, type, and production-build coverage for conversational recommendation intent and results.
+- [x] Add an optional, member-controlled saved taste profile for recommendation preferences.
+- [x] Add contextual “more like this” follow-up prompts that retain the active recommendation context without inferring hidden viewing data.
+- [x] Add visible language and runtime filters for AI recommendation results, applied without fabricating metadata.
+- [x] Add persistence, filtering, follow-up, accessibility, responsive, unit, browser, type, and production-build validation for the enhanced recommendation experience.
+- [x] Surface optional public-web research leads across relevant discovery, recommendation, and title workflows, including reporting, movie blogs, and public discussion links.
+- [x] Keep public-web results source-linked, privacy-safe, and explicitly separate from licensed legal-offer data, tracking, alerts, and subscription decisions.
+- [x] Add workflow, source-boundary, accessibility, browser, responsive, type, and production-build validation for expanded public-web research surfaces.
+- [x] Add authenticated save-to-watchlist actions to discovery results and AI recommendation results, with title metadata and current legal-offer snapshot provenance.
+- [x] Add natural-language personal commands for explicit watchlist, wallet, and decision actions, with clear confirmation, validation, and no hidden account changes.
+- [x] Add a member Settings page for recommendation preferences, alert controls, and account-scoped experience settings.
+- [x] Add portable GitHub/Vercel deployment preparation and documentation, retaining server-side runtime requirements and safe environment-variable configuration.
+- [x] Add unit, browser, accessibility, responsive, type, production-build, and independent runtime validation for cross-site saves, commands, settings, and portable deployment.

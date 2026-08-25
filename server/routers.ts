@@ -24,6 +24,7 @@ import {
   getSnapshotHistory,
   getSubscriptionActions,
   getSubscriptions,
+  getTasteProfile,
   getViewingSignals,
   getWatchlist,
   markAlertRead,
@@ -39,6 +40,7 @@ import {
   updateWatchlistIntent,
   updateWatchlistMonitoring,
   updateWatchlistNote,
+  upsertTasteProfile,
   setCommunityPostStatus,
   setCommunityTitleRating,
   setCommunityThreadStatus,
@@ -93,14 +95,39 @@ export const appRouter = router({
   }),
   ai: router({
     research: protectedProcedure.input(z.object({ query: z.string().trim().min(3).max(220), region: z.string().regex(/^[A-Z]{2}$/), language: z.string().min(2).max(20) })).mutation(({ input }) => researchDiscoveryLead(input)),
-    recommend: publicProcedure.input(z.object({ prompt: z.string().trim().min(3).max(500), language: z.string().min(2).max(20).default("en-US") })).mutation(async ({ input }) => {
+    recommend: publicProcedure.input(z.object({ prompt: z.string().trim().min(3).max(500), language: z.string().min(2).max(20).default("en-US"), preferredOriginalLanguage: z.string().regex(/^[a-z]{2}$/).nullable().optional(), maxRuntimeMinutes: z.number().int().min(30).max(360).nullable().optional() })).mutation(async ({ input }) => {
       const interpretation = await interpretRecommendationPrompt(input.prompt);
-      const catalog = await recommendCatalogFromIntent(interpretation, input.language);
-      return { ...catalog, interpretation };
+      const resolvedIntent = { ...interpretation, originalLanguage: input.preferredOriginalLanguage ?? interpretation.originalLanguage, maxRuntimeMinutes: input.maxRuntimeMinutes ?? interpretation.maxRuntimeMinutes };
+      const catalog = await recommendCatalogFromIntent(resolvedIntent, input.language);
+      return { ...catalog, interpretation: resolvedIntent };
     }),
   }),
   assistant: router({
     ask: protectedProcedure.input(z.object({ question: z.string().trim().min(2).max(750) })).mutation(({ ctx, input }) => askPersonalAssistant(ctx.user.id, input.question)),
+    command: protectedProcedure.input(z.object({ command: z.string().trim().min(3).max(300) })).mutation(async ({ ctx, input }) => {
+      const normalized = input.command.toLowerCase();
+      const [watchlist, wallet] = await Promise.all([getWatchlist(ctx.user.id), getSubscriptions(ctx.user.id)]);
+      const watch = watchlist.find(item => normalized.includes(item.title.toLowerCase()));
+      const service = wallet.find(item => normalized.includes(item.providerName.toLowerCase()));
+      if (watch && /remove|delete/.test(normalized)) return { kind: "remove_watchlist" as const, id: watch.id, label: `Remove “${watch.title}” from your watchlist`, confirmation: "This removes the saved title and its private availability snapshots." };
+      if (service && /cancel|stop/.test(normalized)) return { kind: "plan_cancellation" as const, id: service.id, label: `Plan cancellation for ${service.providerName}`, confirmation: "This marks the subscription for cancellation; it does not contact the provider or cancel billing." };
+      if (service && /pause/.test(normalized)) return { kind: "pause_subscription" as const, id: service.id, label: `Pause ${service.providerName} in your Streamwise wallet`, confirmation: "This updates only your private Streamwise record; it does not contact the provider." };
+      return { kind: "none" as const, id: null, label: "No safe action was identified", confirmation: "Try: ‘remove [title] from my watchlist’, ‘pause [service]’, or ‘plan cancellation for [service]’." };
+    }),
+    executeCommand: protectedProcedure.input(z.object({ kind: z.enum(["remove_watchlist", "plan_cancellation", "pause_subscription"]), id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      if (input.kind === "remove_watchlist") { await removeWatchlistItem(ctx.user.id, input.id); return { success: true, message: "Removed the title from your watchlist." }; }
+      const action = input.kind === "pause_subscription" ? "paused" : "cancellation_planned";
+      await applySubscriptionAction(ctx.user.id, input.id, action, null, null);
+      return { success: true, message: action === "paused" ? "Updated your private wallet record to paused." : "Marked your private wallet record for cancellation." };
+    }),
+  }),
+  tasteProfile: router({
+    get: protectedProcedure.query(({ ctx }) => getTasteProfile(ctx.user.id)),
+    save: protectedProcedure.input(z.object({ favoriteGenreIds: z.array(z.number().int().positive()).max(12), preferredLanguages: z.array(z.string().regex(/^[a-z]{2}$/)).max(12), maxRuntimeMinutes: z.number().int().min(30).max(360).nullable(), includeMovies: z.boolean(), includeSeries: z.boolean() })).mutation(async ({ ctx, input }) => {
+      if (!input.includeMovies && !input.includeSeries) throw new Error("Choose films, series, or both.");
+      await upsertTasteProfile(ctx.user.id, { favoriteGenresJson: JSON.stringify(input.favoriteGenreIds), preferredLanguagesJson: JSON.stringify(input.preferredLanguages), maxRuntimeMinutes: input.maxRuntimeMinutes, includeMovies: input.includeMovies, includeSeries: input.includeSeries });
+      return { success: true };
+    }),
   }),
   providers: router({ list: publicProcedure.query(() => providerGuides) }),
   community: router({

@@ -52,6 +52,19 @@ export const viewingSignals = mysqlTable(
   table => [uniqueIndex("viewing_signal_member_title_unique").on(table.userId, table.tmdbId, table.mediaType), index("viewing_signal_member_recorded_idx").on(table.userId, table.recordedAt)],
 );
 
+/** Optional preferences a member intentionally saves for recommendation filtering; never inferred from activity. */
+export const tasteProfiles = mysqlTable("tasteProfiles", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  favoriteGenresJson: text("favoriteGenresJson").notNull(),
+  preferredLanguagesJson: text("preferredLanguagesJson").notNull(),
+  maxRuntimeMinutes: int("maxRuntimeMinutes"),
+  includeMovies: boolean("includeMovies").default(true).notNull(),
+  includeSeries: boolean("includeSeries").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 export const availabilitySnapshots = mysqlTable(
   "availabilitySnapshots",
   {

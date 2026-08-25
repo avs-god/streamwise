@@ -15,6 +15,7 @@ import {
   scheduledJobs,
   subscriptionActions,
   subscriptions,
+  tasteProfiles,
   users,
   viewingSignals,
   watchlistItems,
@@ -259,6 +260,19 @@ export async function getViewingSignals(userId: number) {
 export async function removeViewingSignal(userId: number, id: number) {
   const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
   await db.delete(viewingSignals).where(and(eq(viewingSignals.id, id), eq(viewingSignals.userId, userId)));
+}
+
+export type TasteProfileInput = { favoriteGenresJson: string; preferredLanguagesJson: string; maxRuntimeMinutes: number | null; includeMovies: boolean; includeSeries: boolean };
+
+/** Explicit member preference profile used only when the member chooses to save or apply it. */
+export async function getTasteProfile(userId: number) {
+  const db = await getDb(); if (!db) return null;
+  return (await db.select().from(tasteProfiles).where(eq(tasteProfiles.userId, userId)).limit(1))[0] ?? null;
+}
+
+export async function upsertTasteProfile(userId: number, input: TasteProfileInput) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  await db.insert(tasteProfiles).values({ userId, ...input }).onDuplicateKeyUpdate({ set: input });
 }
 
 export async function getCommunityPosts(input: { region?: string; kind?: CommunityPostInput["kind"] }) {

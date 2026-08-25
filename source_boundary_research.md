@@ -33,6 +33,12 @@ IMDb’s official content-licensing information says that ratings and other meta
 | IMDb | Outbound title-search reference | Displaying IMDb ratings or review text |
 | Rotten Tomatoes | Outbound title-search reference | Displaying scores or copied reviews without permission |
 
+## Public-web research leads
+
+Streamwise may use server-side grounded web research to collect **inspectable public links** relevant to a user’s discovery query, recommendation request, or opened title. The consumer UI now exposes this research panel on the unified Discovery flow, after an AI recommendation prompt, and on title detail. It can surface reporting, permitted movie-blog pages, and public discussion URLs so users can investigate without repeating individual searches.
+
+These are research leads, not a second availability database. The UI keeps them source-linked and does not copy personal handles or post content. They are excluded from country-specific legal offers, availability snapshots, alerts, tracking, subscription decisions, and deterministic catalog recommendation inputs. A signed-in member starts the optional research action; the licensed catalog remains the only legal-offer lane.
+
 ## References
 
 [1]: https://developer.themoviedb.org/reference/movie-watch-providers "TMDb: Watch Providers"

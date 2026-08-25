@@ -7,6 +7,7 @@ setCatalogAccessTokenForTests("");
 const mockedDb = vi.hoisted(() => ({
   getWatchlist: vi.fn(async (userId: number) => [{ id: 11, userId, title: `Private list for ${userId}` }]),
   getSubscriptions: vi.fn(async (userId: number) => [{ id: 22, userId, providerName: `Provider ${userId}` }]),
+  getTasteProfile: vi.fn(async (userId: number) => ({ id: 1, userId, favoriteGenresJson: "[878]", preferredLanguagesJson: "[\"hi\"]", maxRuntimeMinutes: 120, includeMovies: true, includeSeries: true })),
   updateWatchlistNote: vi.fn(async () => undefined),
   updateAlertPreferences: vi.fn(async (userId: number, input: unknown) => ({ userId, ...input })),
   getAlertPreferences: vi.fn(async () => ({ availabilityChangesEnabled: false, renewalRemindersEnabled: false, pauseRemindersEnabled: false, renewalLeadDays: 7, inAppEnabled: false })),
@@ -28,9 +29,11 @@ const mockedDb = vi.hoisted(() => ({
   getViewingSignals: vi.fn(async (userId: number) => [{ id: 88, userId, title: `Recorded title for ${userId}` }]),
   recordViewingSignal: vi.fn(async () => undefined),
   removeViewingSignal: vi.fn(async () => undefined),
+  removeWatchlistItem: vi.fn(async () => undefined),
   setCommunityPostStatus: vi.fn(async () => undefined),
   setCommunityThreadStatus: vi.fn(async () => undefined),
   setCommunityThreadReplyStatus: vi.fn(async () => undefined),
+  upsertTasteProfile: vi.fn(async () => undefined),
 }));
 
 vi.mock("./db", () => ({
@@ -54,12 +57,13 @@ vi.mock("./db", () => ({
   getSnapshotHistory: vi.fn(async () => []),
   getSubscriptionActions: vi.fn(async () => []),
   getSubscriptions: mockedDb.getSubscriptions,
+  getTasteProfile: mockedDb.getTasteProfile,
   getWatchlist: mockedDb.getWatchlist,
   markAlertRead: vi.fn(),
   markAllAlertsRead: vi.fn(),
   removeSubscription: vi.fn(),
   removeViewingSignal: mockedDb.removeViewingSignal,
-  removeWatchlistItem: vi.fn(),
+  removeWatchlistItem: mockedDb.removeWatchlistItem,
   recordViewingSignal: mockedDb.recordViewingSignal,
   reportCommunityPost: mockedDb.reportCommunityPost,
   reportCommunityThread: mockedDb.reportCommunityThread,
@@ -73,6 +77,7 @@ vi.mock("./db", () => ({
   updateWatchlistIntent: vi.fn(),
   updateWatchlistMonitoring: vi.fn(),
   updateWatchlistNote: mockedDb.updateWatchlistNote,
+  upsertTasteProfile: mockedDb.upsertTasteProfile,
 }));
 
 import { appRouter } from "./routers";
@@ -138,6 +143,27 @@ describe("private profile data access", () => {
     expect(mockedDb.getProviderAlertSubscriptions).toHaveBeenCalledWith(19);
     expect(mockedDb.setProviderAlertSubscription).toHaveBeenCalledWith(19, { providerName: "Netflix", region: "IN", enabled: true });
     expect(subscriptions).toEqual([expect.objectContaining({ userId: 19, providerName: "Netflix" })]);
+  });
+
+  it("reads and writes optional taste profiles under the authenticated member only", async () => {
+    const caller = appRouter.createCaller(contextFor(19));
+    const profile = await caller.tasteProfile.get();
+    await caller.tasteProfile.save({ favoriteGenreIds: [878], preferredLanguages: ["hi"], maxRuntimeMinutes: 120, includeMovies: true, includeSeries: true });
+    expect(mockedDb.getTasteProfile).toHaveBeenCalledWith(19);
+    expect(mockedDb.upsertTasteProfile).toHaveBeenCalledWith(19, { favoriteGenresJson: "[878]", preferredLanguagesJson: "[\"hi\"]", maxRuntimeMinutes: 120, includeMovies: true, includeSeries: true });
+    expect(profile).toMatchObject({ userId: 19, maxRuntimeMinutes: 120 });
+  });
+
+  it("plans and confirms only explicit member command actions", async () => {
+    const caller = appRouter.createCaller(contextFor(19));
+    const plan = await caller.assistant.command({ command: "remove Private list for 19 from my watchlist" });
+    expect(plan).toMatchObject({ kind: "remove_watchlist", id: 11 });
+    await caller.assistant.executeCommand({ kind: "remove_watchlist", id: 11 });
+    expect(mockedDb.removeWatchlistItem).toHaveBeenCalledWith(19, 11);
+    const cancellation = await caller.assistant.command({ command: "plan cancellation for Provider 19" });
+    expect(cancellation).toMatchObject({ kind: "plan_cancellation", id: 22 });
+    await caller.assistant.executeCommand({ kind: "plan_cancellation", id: 22 });
+    expect(mockedDb.applySubscriptionAction).toHaveBeenCalledWith(19, 22, "cancellation_planned", null, null);
   });
 
   it("writes community contributions and moderation reports under the authenticated user", async () => {

@@ -12,6 +12,7 @@ import Community from "@/pages/Community";
 import Recommendations from "@/pages/Recommendations";
 import TitlePage from "@/pages/TitlePage";
 import LeavingSoon from "@/pages/LeavingSoon";
+import Settings from "@/pages/Settings";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/community" component={Community} />
       <Route path="/recommendations" component={Recommendations} />
       <Route path="/leaving-soon" component={LeavingSoon} />
+      <Route path="/settings" component={Settings} />
       <Route path="/title/:mediaType/:id" component={TitlePage} />
       <Route path="/providers/:slug" component={ProviderPage} />
       <Route path="/404" component={NotFound} />

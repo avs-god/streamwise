@@ -316,6 +316,7 @@ export type RecommendationCatalogIntent = {
   genreId: number | null;
   mediaType: "movie" | "tv" | "all";
   originalLanguage: string | null;
+  maxRuntimeMinutes: number | null;
 };
 
 /** Catalog-only recommendation retrieval for an AI-interpreted taste prompt. */
@@ -336,6 +337,7 @@ export async function recommendCatalogFromIntent(intent: RecommendationCatalogIn
     const query = new URLSearchParams({ include_adult: "false", include_video: "false", language: cleanLanguage(language), page: "1", sort_by: "popularity.desc" });
     if (intent.genreId) query.set("with_genres", String(intent.genreId));
     if (intent.originalLanguage && /^[a-z]{2}$/.test(intent.originalLanguage)) query.set("with_original_language", intent.originalLanguage);
+    if (mediaType === "movie" && intent.maxRuntimeMinutes) query.set("with_runtime.lte", String(intent.maxRuntimeMinutes));
     const data = await tmdbFetch<{ results?: Result[] }>(`/discover/${mediaType}?${query.toString()}`);
     return (data.results ?? []).map(item => ({ id: item.id, mediaType, title: item.title ?? item.name ?? "Untitled", originalTitle: item.original_title ?? item.original_name ?? null, overview: item.overview ?? null, posterPath: item.poster_path ?? null, releaseDate: item.release_date ?? item.first_air_date ?? null }));
   }));

@@ -79,3 +79,15 @@ The rendered `/title/movie/27205` consumer route showed primary TMDb/JustWatch c
 The AI web-answer flow now presents a direct conversational synthesis of public search context while keeping inspectable links and a separate licensed country-specific offer path. Its contract covers 2012-title resolution, direct wording, source retention, sensitive-content rejection, and legal-catalog separation.
 
 Recommendations now includes an AI chat-style prompt for genres, languages, moods, and liked titles or shows. The model only translates the request into bounded catalog filters; returned picks come from TMDb catalog similarity or discover routes. Validation passed: **19 Vitest files / 88 tests**, **9 Playwright checks**, TypeScript, and production build, with desktop and 375px visual review of the recommendation chat.
+
+## Saved taste profiles, filters, follow-ups, and public-web research surfaces — 2026-08-25
+
+Applied additive migration `0012_safe_wilson_fisk` for an optional member-owned taste profile. The recommendation chat now supports explicit original-language and maximum film-runtime filters, optional saved preference reuse for signed-in members, and “More like this” follow-ups that carry only the active prompt and selected catalog title.
+
+Source-linked public-web research entry panels now appear in Discovery, after a recommendation request, and on title detail. They remain separate from the licensed catalog, snapshots, tracking, alerts, and decisions. Validation passed: **19 Vitest files / 89 tests**, **9 Playwright checks**, TypeScript, production build, desktop/mobile review, and independent compiled-server HTTP checks for `/`, `/recommendations`, `/title/movie/27205`, and a generated asset.
+
+## Service actions, commands, settings, and portability — 2026-08-25
+
+AI recommendation result cards now expose an authenticated **Save to watchlist** control. It waits for the resolved legal-title detail and persists the member’s selected title together with country, typed legal offers, check time, and legal-source URL rather than an inferred availability.
+
+The Assistant includes a natural-language action-review panel for explicit private watchlist removal and wallet pause/cancellation-planning commands. Every command returns a labelled confirmation and only affects the signed-in member’s Streamwise record after the member confirms; it never contacts a provider or changes external billing. The new `/settings` route manages optional taste-profile fields and links to alert controls. `api/index.ts`, `vercel.json`, and `DEPLOYMENT.md` prepare the repository for GitHub/Vercel or a standard Node host. Validation passed: **19 Vitest files / 90 tests**, **9 Playwright checks**, TypeScript, production build, desktop review, and standalone production HTTP checks for `/`, `/recommendations`, `/assistant`, `/settings`, `/title/movie/27205`, and a generated asset.

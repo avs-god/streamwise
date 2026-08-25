@@ -2,7 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ArrowUpRight, BellRing, Bookmark, Bot, Compass, LayoutList, LogOut, MessagesSquare, Star, TimerReset, WalletCards } from "lucide-react";
+import { ArrowUpRight, BellRing, Bookmark, Bot, Compass, LayoutList, LogOut, MessagesSquare, Settings2, Star, TimerReset, WalletCards } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 const nav = [
@@ -42,6 +42,7 @@ export default function AppFrame({ children }: { children: React.ReactNode }) {
               <div className="flex items-center gap-1.5 rounded-full border border-[#d9d3c4] bg-white/70 py-1 pl-1 pr-2">
                 <span className="grid size-7 place-items-center rounded-full bg-[#e8dfc3] text-xs font-bold text-[#194133]">{user.name?.slice(0, 1).toUpperCase() ?? "U"}</span>
                 <span className="hidden max-w-24 truncate text-sm font-medium text-[#285041] sm:block">{user.name ?? "Your account"}</span>
+                <Link href="/settings" title="Settings" aria-label="Settings" className="rounded-full p-1.5 text-[#557066] transition-colors hover:bg-[#eee9dc] hover:text-[#234c3c]"><Settings2 className="size-4" /></Link>
                 <button onClick={logout} title="Sign out" aria-label="Sign out" className="rounded-full p-1.5 text-[#557066] transition-colors hover:bg-[#eee9dc] hover:text-[#234c3c]"><LogOut className="size-4" /></button>
               </div>
             ) : (
