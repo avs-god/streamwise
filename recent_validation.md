@@ -1,5 +1,19 @@
 # Recent Visual Validation — 2026-08-24
 
+## Per-workflow release inventory
+
+`validation_matrix.md` now maps each Streamwise workflow to its contract, browser, accessibility, responsive, and production or managed-runtime evidence. The inventory explicitly distinguishes intercepted synthetic browser data from actual live operations and records the absent catalog credential as a production limitation rather than a pass-through result.
+
+## Final full-suite rerun
+
+After the populated responsive assertions and matrix update, the final suite passed **17 Vitest files / 83 tests**, **8 Playwright checks**, TypeScript, and production build. The browser suite includes synthetic mobile-width checks for a grounded AI result, a populated private recommendation card, and authenticated title rating/review controls. The build retains only the pre-existing non-fatal JavaScript bundle-size warning.
+
+The final synthetic title-review browser flow also focuses the `5 ★` rating control, activates it with Enter, focuses the review composer, and enters a review by keyboard before exercising the report/hidden-state path.
+
+## Cross-surface responsive validation
+
+Desktop (`1280×720`) and mobile (`375×812`) full-page captures were reviewed for Discovery with AI context, Community, Recommendations, and the no-catalog title-detail/community-review state. The mobile navigation retained accessible icon-and-label destinations, long Community and title content reflowed without horizontal truncation, and the legal-catalog standby and unverified-context disclosures remained legible. These captures used the current no-token environment; they verify layout and candid state handling rather than claiming live legal offers or real member writes.
+
 ## Expanded synthetic member and moderation browser validation
 
 The browser suite now covers explicit watched-record consent and error recovery, private post-watch loading/failure/retry recovery, title-linked nested reply creation, individual reply reporting, and an administrator’s reply-hide moderation action. These seven browser checks use only intercepted synthetic responses; no real member account, user-generated content, or provider account is touched. The full release suite passed **17 Vitest files / 83 tests**, **7 Playwright checks**, TypeScript, and production build.

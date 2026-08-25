@@ -9,3 +9,7 @@ The temporary verification job and a stale pre-existing job were deleted. A fres
 ## Follow-up audit
 
 Later on 2026-08-24 UTC, `manus-heartbeat list` again showed exactly that one enabled daily task with `POST /api/scheduled/streamwise-refresh` and cron `0 15 3 * * *` UTC. Its logs still returned `runs: []`, consistent with a newly created daily job that has not reached its first scheduled trigger. No heartbeat definition or database identity was changed during this audit.
+
+## Successful live callback
+
+On 2026-08-25 UTC, the first natural daily execution for persisted task `g4LWHU9zMwiNtvRLKVJN2x` completed successfully. The platform recorded run `gEWXycVdsvzc4vA79qeCy6` at `2026-08-25T03:23:12Z`, returning HTTP `200` after `4572ms`. Its authenticated callback response was `{"ok":true,"usersProcessed":0,"catalogConfigured":false,"refreshedTitles":0,"changedTitles":0}`, confirming the deployed handler accepts the persisted cron identity and accurately reports the absent catalog credential without inventing a refresh result. No heartbeat definition or database identity was changed during this audit.

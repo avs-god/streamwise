@@ -47,8 +47,9 @@ async function mockMemberPostWatch(page: import("@playwright/test").Page, state:
     const entries = procedures.map(procedure => {
       if (procedure === "auth.me") return { result: { data: { json: member } } };
       if (procedure === "catalog.discover") return { result: { data: { json: { configured: false, titles: [], explanation: "Catalog is safely on standby." } } } };
+      if (procedure === "catalog.offerPreview") return { result: { data: { json: { configured: false, offers: [], checkedAt: null, sourceUrl: null } } } };
       if (procedure === "viewingSignals.postWatchPicks" && state.current === "error") return { error: { json: { message: "Synthetic post-watch failure", code: -32603, data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500, path: "viewingSignals.postWatchPicks" } } } };
-      if (procedure === "viewingSignals.postWatchPicks") return { result: { data: { json: { configured: false, titles: [], recordedCount: 1, explanation: "Synthetic private post-watch recovery state." } } } };
+      if (procedure === "viewingSignals.postWatchPicks") return { result: { data: { json: { configured: false, titles: [{ id: 4242, mediaType: "movie", title: "Synthetic recovery pick", overview: "A synthetic deterministic private recommendation card." }], recordedCount: 1, explanation: "Synthetic private post-watch recovery state." } } } };
       return { result: { data: { json: [] } } };
     });
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(entries) });
@@ -57,8 +58,8 @@ async function mockMemberPostWatch(page: import("@playwright/test").Page, state:
 
 async function mockMemberDiscussion(page: import("@playwright/test").Page, state: { childCreated: boolean; reportedReply: boolean }) {
   const member = { id: 996, openId: "browser-discussion-member", name: "Browser Discussion", email: null, loginMethod: "test", role: "user", createdAt: "2026-08-25T00:00:00.000Z", updatedAt: "2026-08-25T00:00:00.000Z", lastSignedIn: "2026-08-25T00:00:00.000Z" };
-  const thread = { id: 81, userId: 996, tmdbId: 27205, title: "Synthetic Film", mediaType: "movie", topic: "discussion", headline: "Synthetic title-linked discussion", body: "A careful synthetic discussion body with enough context for browser coverage.", containsSpoilers: false, shareAttribution: false, status: "visible", createdAt: "2026-08-25T00:00:00.000Z", updatedAt: "2026-08-25T00:00:00.000Z", contributorName: null };
-  const parent = { id: 91, threadId: 81, userId: 996, parentReplyId: null, body: "Synthetic parent reply", containsSpoilers: false, shareAttribution: false, status: "visible", createdAt: "2026-08-25T00:00:00.000Z", updatedAt: "2026-08-25T00:00:00.000Z", contributorName: null };
+  const thread = { id: 81, userId: 996, tmdbId: 27205, title: "Synthetic Film", mediaType: "movie", topic: "discussion", headline: "Synthetic title-linked discussion", body: "A careful synthetic discussion body with enough context for browser coverage.", containsSpoilers: true, shareAttribution: false, status: "visible", createdAt: "2026-08-25T00:00:00.000Z", updatedAt: "2026-08-25T00:00:00.000Z", contributorName: null };
+  const parent = { id: 91, threadId: 81, userId: 996, parentReplyId: null, body: "Synthetic parent reply", containsSpoilers: true, shareAttribution: false, status: "visible", createdAt: "2026-08-25T00:00:00.000Z", updatedAt: "2026-08-25T00:00:00.000Z", contributorName: null };
   const child = { ...parent, id: 92, parentReplyId: 91, body: "Synthetic nested reply" };
   await page.route("**/api/trpc/**", async route => {
     const procedures = new URL(route.request().url()).pathname.split("/api/trpc/")[1]?.split(",") ?? [];
@@ -85,6 +86,24 @@ async function mockAdminModeration(page: import("@playwright/test").Page, state:
       if (procedure === "community.moderation.reports") return { result: { data: { json: [] } } };
       if (procedure === "community.moderation.threadReports") return { result: { data: { json: state.replyHidden ? [] : [{ id: 201, threadId: 81, replyId: 91, reporterUserId: 994, reason: "misleading", detail: null, status: "open", createdAt: "2026-08-25T00:00:00.000Z" }] } } };
       if (procedure === "community.moderation.setReplyStatus") { state.replyHidden = true; return { result: { data: { json: { success: true } } } }; }
+      return { result: { data: { json: [] } } };
+    });
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(entries) });
+  });
+}
+
+async function mockMemberTitleReview(page: import("@playwright/test").Page, state: { reported: boolean; hidden: boolean }) {
+  const member = { id: 994, openId: "browser-review-member", name: "Browser Review", email: null, loginMethod: "test", role: "user", createdAt: "2026-08-25T00:00:00.000Z", updatedAt: "2026-08-25T00:00:00.000Z", lastSignedIn: "2026-08-25T00:00:00.000Z" };
+  const review = { id: 301, tmdbId: 1, mediaType: "movie", title: "Catalog title 1", region: "IN", providerName: null, kind: "review", body: "Synthetic title review visibility text.", sourceUrl: null, shareAttribution: false, status: "visible", createdAt: "2026-08-25T00:00:00.000Z", updatedAt: "2026-08-25T00:00:00.000Z", contributorName: null };
+  await page.route("**/api/trpc/**", async route => {
+    const procedures = new URL(route.request().url()).pathname.split("/api/trpc/")[1]?.split(",") ?? [];
+    const entries = procedures.map(procedure => {
+      if (procedure === "auth.me") return { result: { data: { json: member } } };
+      if (procedure === "catalog.title") return { result: { data: { json: { configured: false, title: null, explanation: "Synthetic catalog standby." } } } };
+      if (procedure === "community.titleRatingSummary") return { result: { data: { json: { count: 0, average: null } } } };
+      if (procedure === "community.titleReviews") return { result: { data: { json: state.hidden ? [] : [review] } } };
+      if (procedure === "community.setTitleRating" || procedure === "community.contribute") return { result: { data: { json: { success: true } } } };
+      if (procedure === "community.report") { state.reported = true; return { result: { data: { json: { success: true } } } }; }
       return { result: { data: { json: [] } } };
     });
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(entries) });
@@ -214,6 +233,9 @@ test("intercepted member browser states render grounded AI success, loading, and
   await expect(page.getByText("Grounded public-web context")).toBeVisible();
   await expect(page.getByText("Searched the likely title Tenet (2020) for “Tencet”.")).toBeVisible();
   await expect(page.getByRole("link", { name: /Tenet film guide/ })).toBeVisible();
+  await page.setViewportSize({ width: 375, height: 812 });
+  await expect(page.getByRole("link", { name: /Tenet film guide/ })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 
   mode.current = "error";
   await search.fill("Another title");
@@ -229,7 +251,7 @@ test("intercepted member records watched only on explicit consent and recovers p
   await expect(page.getByRole("button", { name: "Record as watched" })).toBeVisible();
   expect(state.watched).toBe(false);
   await page.getByRole("button", { name: "Record as watched" }).click();
-  await expect(page.getByText(/Recorded/)).toBeVisible();
+  await expect(page.getByText(/^Recorded \d/)).toBeVisible();
   expect(state.watched).toBe(true);
 
   state.signalsError = true;
@@ -251,6 +273,10 @@ test("intercepted member post-watch picks render loading, failure, and retry rec
   state.current = "success";
   await page.getByRole("button", { name: "Try again" }).click();
   await expect(page.getByText("Synthetic private post-watch recovery state.")).toBeVisible();
+  await expect(page.getByText("Synthetic recovery pick")).toBeVisible();
+  await page.setViewportSize({ width: 375, height: 812 });
+  await expect(page.getByText("Synthetic recovery pick")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
 test("intercepted member creates a nested title-linked reply and reports an individual reply", async ({ page }) => {
@@ -259,8 +285,10 @@ test("intercepted member creates a nested title-linked reply and reports an indi
   await page.goto("/community?tmdbId=27205&mediaType=movie&title=Synthetic%20Film");
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.keyboard.press("Escape");
+  await expect(page.getByText("Spoilers flagged")).toBeVisible();
   await page.getByRole("button", { name: "Synthetic title-linked discussion" }).click();
   await expect(page.getByText("Synthetic parent reply")).toBeVisible();
+  await expect(page.getByText("Spoilers", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Reply to this comment" }).click();
   await page.getByLabel("Reply to comment").fill("A nested synthetic response");
   await page.getByRole("button", { name: "Post reply" }).click();
@@ -279,4 +307,29 @@ test("intercepted admin hides a reported reply through the private moderation pa
   await page.getByRole("button", { name: "Hide reply" }).click();
   await expect.poll(() => state.replyHidden).toBe(true);
   await expect(page.getByText("No open discussion reports.")).toBeVisible();
+});
+
+test("intercepted member reports a title review and does not see it after the synthetic hidden state", async ({ page }) => {
+  const state = { reported: false, hidden: false };
+  await mockMemberTitleReview(page, state);
+  await page.goto("/title/movie/1");
+  await expect(page.getByText("Synthetic title review visibility text.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "5 ★" })).toBeVisible();
+  await page.setViewportSize({ width: 375, height: 812 });
+  await expect(page.getByRole("button", { name: "5 ★" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  const fiveStar = page.getByRole("button", { name: "5 ★" });
+  await fiveStar.focus();
+  await expect(fiveStar).toBeFocused();
+  await page.keyboard.press("Enter");
+  const reviewComposer = page.getByLabel("Write a community review");
+  await reviewComposer.focus();
+  await expect(reviewComposer).toBeFocused();
+  await page.keyboard.type("A synthetic keyboard review entry with enough context.");
+  await expect(page.getByRole("button", { name: "Publish community review" })).toBeEnabled();
+  await page.getByRole("button", { name: "Report review" }).click();
+  await expect.poll(() => state.reported).toBe(true);
+  state.hidden = true;
+  await page.reload();
+  await expect(page.getByText("No title-linked community reviews are visible yet.")).toBeVisible();
 });
