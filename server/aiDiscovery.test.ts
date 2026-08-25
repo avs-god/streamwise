@@ -11,7 +11,7 @@ const mockedLlm = vi.hoisted(() => ({
 }));
 vi.mock("./_core/llm", () => mockedLlm);
 
-import { cleanSummary, parseStructuredLead, researchDiscoveryLead, sourcesFrom } from "./aiDiscovery";
+import { cleanSummary, parseStructuredLead, researchDiscoveryLead, resolveResearchQuery, sourcesFrom } from "./aiDiscovery";
 
 describe("AI discovery provenance", () => {
   it("separates social-network citations into generic community links", () => {
@@ -23,6 +23,13 @@ describe("AI discovery provenance", () => {
     const result = await researchDiscoveryLead({ query: "Where might this series move?", region: "IN", language: "en-IN" });
     expect(result.status).toBe("lead"); expect(result.sources).toHaveLength(1); expect(result.communitySources).toHaveLength(1); expect(result.limitation).toMatch(/unverified leads/i);
     expect(mockedLlm.invokeLLM).toHaveBeenCalledWith(expect.objectContaining({ outputSchema: expect.any(Object) }));
+  });
+  it("resolves the reported Tencet typo before issuing a grounded title search", async () => {
+    expect(resolveResearchQuery("Tencet")).toEqual({ resolvedQuery: "Tenet 2020 film", correctionNote: "Searched the likely title **Tenet** (2020) for “Tencet”." });
+    const result = await researchDiscoveryLead({ query: "Tencet", region: "IN", language: "en-IN" });
+    expect(result.resolvedQuery).toBe("Tenet 2020 film");
+    expect(result.correctionNote).toMatch(/Tenet/);
+    expect(mockedLlm.invokeLLM).toHaveBeenLastCalledWith(expect.objectContaining({ messages: expect.arrayContaining([expect.objectContaining({ content: expect.stringContaining("Resolved search intent: Tenet 2020 film") })]) }));
   });
   it("rejects malformed or availability-asserting summaries", () => {
     expect(parseStructuredLead('{"status":"lead","summary":"This series is now streaming on Netflix."}')).toBeNull();
@@ -36,6 +43,13 @@ describe("AI discovery provenance", () => {
     expect(result.status).toBe("insufficient");
     expect(result.sources).toEqual([]);
     expect(result.communitySources).toEqual([]);
+    expect(result.summary).toMatch(/could not ground an inspectable public reading link/i);
+  });
+  it("recovers inspectable sources from inline citations when tool metadata omits them", async () => {
+    mockedLlm.invokeLLM.mockResolvedValueOnce({ choices: [{ message: { content: '{"status":"lead","summary":"Read [a film guide](https://film.example/tenet-guide) for context."}', metadata: { source_citations: [] } } }] });
+    const result = await researchDiscoveryLead({ query: "Tenet", region: "IN", language: "en-IN" });
+    expect(result.status).toBe("lead");
+    expect(result.sources).toEqual([expect.objectContaining({ url: "https://film.example/tenet-guide", title: "a film guide" })]);
   });
   it("keeps inspectable links for a simple where-to-watch wording even when the model returns an insufficient status", async () => {
     mockedLlm.invokeLLM.mockResolvedValueOnce({ choices: [{ message: { content: JSON.stringify({ status: "insufficient", summary: "No concise summary was found." }), metadata: { source_citations: [{ title: "Film guide", url: "https://film.example/2012-guide" }] } } }] });
@@ -51,6 +65,7 @@ describe("AI discovery provenance", () => {
     expect(panel).toContain("No copied post text or handles");
     expect(panel).toContain("availability, alert, tracking, or recommendation evidence");
     expect(panel).toContain('role="alert"');
-    expect(panel).toContain("Insufficient source evidence");
+    expect(panel).toContain("No grounded source returned");
+    expect(panel).toContain("Resolving title intent and grounding public sources");
   });
 });

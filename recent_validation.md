@@ -1,5 +1,13 @@
 # Recent Visual Validation — 2026-08-24
 
+## Leaving-soon and grounded-AI release validation
+
+The release suite passed with **17 Vitest files / 81 tests**, two Playwright checks, TypeScript, and production build. The sandbox reset temporarily removed the Playwright browser binary; it was restored before the browser checks were rerun successfully. The standalone production server returned HTTP `200` for `/`, `/leaving-soon`, `/community`, `/title/movie/1`, and the emitted JavaScript asset, then was stopped.
+
+## Leaving Soon hub — desktop and mobile review
+
+Desktop review showed the three evidence lanes—confirmed provider checks, community leads, and grounded public-web context—at equal visual weight and with a clear credential-free provider-readiness notice. At 375×812, the cards stacked cleanly, labels remained legible, the compact navigation stayed reachable, and the research control remained visible without horizontal overflow. The checks used signed-out, no-catalog states and did not submit a community lead or invoke public-web research.
+
 Desktop verification confirmed that the provider-first title route candidly renders its no-catalog standby state without a permanently open availability dialog. The deterministic recommendations page remains legible and correctly explains that live catalog discovery is disabled rather than fabricating titles or offers.
 
 Mobile verification at 375×812 confirmed that the title route keeps the fallback, community aggregate, rating controls, review composer, and empty-review state readable. The title-linked Community URL preserves normal signed-out behavior: the page shows contribution controls and no fabricated title/thread data. Automated signed-in auto-open behavior remains covered by implementation and regression checks; it cannot be exercised in this browser without an authenticated test session.

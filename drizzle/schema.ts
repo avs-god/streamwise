@@ -134,6 +134,8 @@ export const communityPosts = mysqlTable(
     mediaType: mysqlEnum("mediaType", ["movie", "tv", "unknown"]).default("unknown").notNull(),
     region: varchar("region", { length: 2 }).notNull(),
     providerName: varchar("providerName", { length: 150 }),
+    reportedLeavingAt: timestamp("reportedLeavingAt"),
+    switchesToProviderName: varchar("switchesToProviderName", { length: 150 }),
     kind: mysqlEnum("kind", ["available", "ppv", "leaving_soon", "review", "recommendation"]).notNull(),
     body: text("body").notNull(),
     sourceUrl: varchar("sourceUrl", { length: 1024 }),

@@ -68,6 +68,7 @@ const communityPostInput = z.object({
   tmdbId: z.number().int().positive().nullable().optional(),
   title: z.string().trim().min(1).max(500), mediaType: z.enum(["movie", "tv", "unknown"]), region: z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/),
   providerName: z.string().trim().min(1).max(150).nullable().optional(), kind: communityKind, body: z.string().trim().min(20).max(2000),
+  reportedLeavingAt: z.coerce.date().nullable().optional(), switchesToProviderName: z.string().trim().min(1).max(150).nullable().optional(),
   sourceUrl: z.string().url().max(1024).nullable().optional(), shareAttribution: z.boolean(),
 });
 const threadTopic = z.enum(["plot", "recommendation", "discussion", "craft"]);
@@ -96,7 +97,7 @@ export const appRouter = router({
   providers: router({ list: publicProcedure.query(() => providerGuides) }),
   community: router({
     list: publicProcedure.input(z.object({ region: z.string().regex(/^[A-Z]{2}$/).optional(), kind: communityKind.optional() }).optional()).query(({ input }) => getCommunityPosts(input ?? {})),
-    contribute: protectedProcedure.input(communityPostInput).mutation(async ({ ctx, input }) => { await createCommunityPost(ctx.user.id, { ...input, tmdbId: input.tmdbId ?? null, providerName: input.providerName ?? null, sourceUrl: input.sourceUrl ?? null }); return { success: true }; }),
+    contribute: protectedProcedure.input(communityPostInput).mutation(async ({ ctx, input }) => { await createCommunityPost(ctx.user.id, { ...input, tmdbId: input.tmdbId ?? null, providerName: input.providerName ?? null, reportedLeavingAt: input.reportedLeavingAt ?? null, switchesToProviderName: input.switchesToProviderName ?? null, sourceUrl: input.sourceUrl ?? null }); return { success: true }; }),
     report: protectedProcedure.input(z.object({ postId: z.number().int().positive(), reason: z.enum(["misleading", "spam", "abuse", "privacy", "other"]), detail: z.string().trim().max(500).nullable().optional() })).mutation(async ({ ctx, input }) => { await reportCommunityPost(ctx.user.id, input.postId, { reason: input.reason, detail: input.detail ?? null }); return { success: true }; }),
     titleRatingSummary: publicProcedure.input(z.object({ tmdbId: z.number().int().positive(), mediaType: z.enum(["movie", "tv"]) })).query(({ input }) => getCommunityTitleRatingSummary(input)),
     titleReviews: publicProcedure.input(z.object({ tmdbId: z.number().int().positive(), mediaType: z.enum(["movie", "tv"]) })).query(({ input }) => getCommunityTitleReviews(input)),

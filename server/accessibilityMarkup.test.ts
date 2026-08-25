@@ -70,9 +70,9 @@ describe("keyboard and semantic-accessibility regression checks", () => {
   it("keeps public-web research loading, failure, sign-in, and provenance states visible", () => {
     const panel = source("client/src/components/AiResearchPanel.tsx");
     expect(panel).toContain("Sign in for web context");
-    expect(panel).toContain("Researching public sources independently");
+    expect(panel).toContain("Resolving title intent and grounding public sources");
     expect(panel).toContain("Public-web research could not be completed");
-    expect(panel).toContain("Insufficient source evidence");
+    expect(panel).toContain("No grounded source returned");
     expect(panel).toContain("Separate evidence");
   });
 
@@ -210,5 +210,25 @@ describe("keyboard and semantic-accessibility regression checks", () => {
     expect(title).toContain("Where to stream");
     expect(decisions).toContain("cancel candidate");
     expect(audit).toContain("require a permitted server-side credential");
+  });
+
+  it("keeps leaving-soon tracking in explicit confirmed, community, and grounded-public-web lanes", () => {
+    const hub = source("client/src/pages/LeavingSoon.tsx");
+    const community = source("client/src/pages/Community.tsx");
+    const router = source("server/routers.ts");
+    expect(hub).toContain("Leaving soon, without false certainty.");
+    expect(hub).toContain("Confirmed provider checks");
+    expect(hub).toContain("Community leads");
+    expect(hub).toContain("Grounded public-web context");
+    expect(hub).toContain("No OTT passwords or private watchlists.");
+    expect(hub).toContain("official provider-authorized OAuth or API integration");
+    expect(hub).toContain("Grounded public-web check");
+    expect(hub).toContain("Look for source-linked reporting, not a rumor score.");
+    expect(hub).toContain("The results never create a countdown, confirmed move, alert, or legal offer.");
+    expect(community).toContain("reportedLeavingAt");
+    expect(community).toContain("switchesToProviderName");
+    expect(community).toContain("These fields are community leads, not confirmation.");
+    expect(router).toContain("reportedLeavingAt: z.coerce.date().nullable().optional()");
+    expect(router).toContain("switchesToProviderName: z.string().trim().min(1).max(150).nullable().optional()");
   });
 });

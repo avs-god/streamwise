@@ -131,8 +131,15 @@ describe("private profile data access", () => {
     await caller.community.contribute(post);
     await caller.community.report({ postId: 12, reason: "misleading", detail: "Needs a source check." });
 
-    expect(mockedDb.createCommunityPost).toHaveBeenCalledWith(7, { ...post, tmdbId: null });
+    expect(mockedDb.createCommunityPost).toHaveBeenCalledWith(7, { ...post, tmdbId: null, reportedLeavingAt: null, switchesToProviderName: null });
     expect(mockedDb.reportCommunityPost).toHaveBeenCalledWith(7, 12, { reason: "misleading", detail: "Needs a source check." });
+  });
+
+  it("persists a reported departure and possible destination only as a structured community lead", async () => {
+    const caller = appRouter.createCaller(contextFor(7));
+    const reportedLeavingAt = new Date("2026-09-01T00:00:00.000Z");
+    await caller.community.contribute({ title: "Example Film", mediaType: "movie", region: "IN", providerName: "Example Provider", kind: "leaving_soon", body: "A public source raises an unverified departure possibility with context.", sourceUrl: "https://example.com/lead", reportedLeavingAt, switchesToProviderName: "Another Provider", shareAttribution: false });
+    expect(mockedDb.createCommunityPost).toHaveBeenCalledWith(7, expect.objectContaining({ kind: "leaving_soon", providerName: "Example Provider", reportedLeavingAt, switchesToProviderName: "Another Provider", sourceUrl: "https://example.com/lead" }));
   });
 
   it("writes thread creation, replies, and reports under the authenticated member", async () => {
@@ -165,7 +172,7 @@ describe("private profile data access", () => {
     await expect(caller.community.createThread({ tmdbId: null, title: "Film", mediaType: "movie", topic: "plot", headline: "Tiny", body: "Too short", containsSpoilers: false, shareAttribution: false })).rejects.toThrow();
     await expect(caller.community.reply({ threadId: 0, parentReplyId: null, body: "x", containsSpoilers: false, shareAttribution: false })).rejects.toThrow();
     await expect(caller.community.reportThread({ threadId: 5, replyId: null, reason: "not-a-reason" as never, detail: null })).rejects.toThrow();
-    expect(mockedDb.createCommunityPost).toHaveBeenCalledTimes(1);
+    expect(mockedDb.createCommunityPost).toHaveBeenCalledTimes(2);
     expect(mockedDb.createCommunityThread).toHaveBeenCalledTimes(1);
     expect(mockedDb.createThreadReply).toHaveBeenCalledTimes(2);
     expect(mockedDb.reportCommunityThread).toHaveBeenCalledTimes(2);

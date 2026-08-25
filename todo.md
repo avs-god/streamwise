@@ -127,3 +127,12 @@
 - [x] Add visible per-review report controls on the title-page community review list and wire them to the existing community report workflow.
 - [ ] Add regression and browser coverage for title-page review reporting and moderation visibility states.
 - [x] Add a fixture-free title-review report-action regression that targets the supplied review ID without seeding review content.
+- [x] Add a dedicated Leaving Soon hub that distinguishes verified legal offer changes from community and public-web leads.
+- [x] Extend community contributions with structured leaving-soon and platform-switch reports, source links, and moderation-safe visibility.
+- [x] Add a public-web research path for leaving-soon and platform-switch leads that keeps source URLs and labels but does not scrape or copy personal posts.
+- [ ] Add member-controlled tracking subscriptions for saved titles and selected providers, with opt-in alerts and explicit unverified-lead limitations.
+- [x] Design official provider-integration readiness without collecting OTT credentials, scraping private watchlists, or accessing account data without a provider-authorized OAuth or API integration.
+- [x] Add leaving-soon evidence-boundary, privacy, workflow, and accessibility regressions; validate all safe testable paths without browser control.
+- [x] Rework straightforward AI title queries so likely misspellings such as “Tencet” return a corrected title and useful inspectable public-reading links when available.
+- [x] Replace the generic no-link AI dead end with a query-specific grounded fallback that remains useful without treating public-web material as legal availability.
+- [x] Add regression coverage for grounded simple-title AI responses, source-link retention, and the legal-catalog separation.

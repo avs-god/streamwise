@@ -213,6 +213,8 @@ export type CommunityPostInput = {
   mediaType: "movie" | "tv" | "unknown";
   region: string;
   providerName: string | null;
+  reportedLeavingAt?: Date | null;
+  switchesToProviderName?: string | null;
   kind: "available" | "ppv" | "leaving_soon" | "review" | "recommendation";
   body: string;
   sourceUrl: string | null;
