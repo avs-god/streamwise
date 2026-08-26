@@ -53,6 +53,7 @@ import { syncRenewalAlerts } from "./alertService";
 import { researchDiscoveryLead } from "./aiDiscovery";
 import { interpretRecommendationPrompt } from "./aiRecommendations";
 import { askPersonalAssistant } from "./personalAssistant";
+import { getEmailDeliveryStatus } from "./email";
 import { buildSubscriptionDecisions } from "./recommendations";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -186,6 +187,20 @@ export const appRouter = router({
   }),
   alerts: router({
     preferences: protectedProcedure.query(({ ctx }) => getAlertPreferences(ctx.user.id)),
+    deliveryStatus: protectedProcedure.query(() => getEmailDeliveryStatus()),
+    providerDigest: protectedProcedure.query(async ({ ctx }) => {
+      const items = (await getAlerts(ctx.user.id)).filter(item => item.type === "availability_changed").slice(0, 20);
+      return items.map(item => {
+        let change: { region?: string; added?: Array<{ name?: string }>; removed?: Array<{ name?: string }>; checkedAt?: string } = {};
+        try { change = JSON.parse(item.payloadJson) as typeof change; } catch { /* Preserve the alert even if an old payload is malformed. */ }
+        return {
+          id: item.id, title: item.title, createdAt: item.createdAt, region: change.region ?? null,
+          addedProviders: (change.added ?? []).map(offer => offer.name).filter((name): name is string => Boolean(name)),
+          removedProviders: (change.removed ?? []).map(offer => offer.name).filter((name): name is string => Boolean(name)),
+          checkedAt: change.checkedAt ?? null, body: item.body,
+        };
+      });
+    }),
     updatePreferences: protectedProcedure.input(z.object({ availabilityChangesEnabled: z.boolean(), renewalRemindersEnabled: z.boolean(), pauseRemindersEnabled: z.boolean(), renewalLeadDays: z.number().int().min(1).max(60), inAppEnabled: z.boolean(), emailEnabled: z.boolean().optional().default(false), emailRecommendationEnabled: z.boolean().optional().default(false), emailLeavingSoonEnabled: z.boolean().optional().default(false), emailCommunityEnabled: z.boolean().optional().default(false) })).mutation(({ ctx, input }) => updateAlertPreferences(ctx.user.id, input)),
     providerSubscriptions: protectedProcedure.query(({ ctx }) => getProviderAlertSubscriptions(ctx.user.id)),
     setProviderSubscription: protectedProcedure.input(z.object({ providerName: z.string().trim().min(1).max(150), region: z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/), enabled: z.boolean() })).mutation(async ({ ctx, input }) => { await setProviderAlertSubscription(ctx.user.id, input); return { success: true }; }),

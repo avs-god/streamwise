@@ -7,8 +7,10 @@ import {
   getLatestSnapshot,
   getOwnedWatchlistItem,
   getProviderAlertSubscriptions,
+  getUserById,
   updateWatchlistAvailability,
 } from "./db";
+import { sendOptedInEmail } from "./email";
 
 function compactOffers(offers: SnapshotOffer[]) { return offers.map(({ id, name, type }) => ({ id, name, type })); }
 
@@ -39,11 +41,25 @@ export async function refreshTrackedTitle(userId: number, watchlistItemId: numbe
     const preferences = await getAlertPreferences(userId);
     const providerSelections = await getProviderAlertSubscriptions(userId);
     if (preferences.availabilityChangesEnabled && preferences.inAppEnabled && matchesProviderAlertSelection(change, providerSelections, item.availabilityRegion)) {
-      await createAlert({ userId, type: "availability_changed", title: `Availability changed: ${item.title}`, body: `${change.summary} This is an observed difference between two ${item.availabilityRegion} source snapshots; it is not a confirmed leaving-soon notice.`, payloadJson: JSON.stringify({ watchlistItemId: item.id, region: item.availabilityRegion, added: change.added, removed: change.removed, checkedAt: detail.checkedAt }) });
+      const title = `Availability changed: ${item.title}`;
+      const body = `${change.summary} This is an observed difference between two ${item.availabilityRegion} source snapshots; it is not a confirmed leaving-soon notice.`;
+      await createAlert({ userId, type: "availability_changed", title, body, payloadJson: JSON.stringify({ watchlistItemId: item.id, region: item.availabilityRegion, added: change.added, removed: change.removed, checkedAt: detail.checkedAt }) });
+      if (preferences.emailEnabled && preferences.emailLeavingSoonEnabled) {
+        const user = await getUserById(userId);
+        if (user?.email) {
+          try {
+            await sendOptedInEmail({ to: user.email, subject: title, html: `<p>${escapeHtml(body)}</p><p>Open Streamwise to inspect the private provider-change digest and current offers.</p>` });
+          } catch (error) {
+            console.warn("[Email] Provider-change email was not sent:", error);
+          }
+        }
+      }
     }
   }
   return { configured: true, refreshed: true, changed: Boolean(latest && change.changed), change, checkedAt: detail.checkedAt, title: item.title };
 }
+
+function escapeHtml(value: string) { return value.replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character); }
 
 export async function refreshTrackedTitlesForUser(userId: number, language = "en-US") {
   const { getWatchlist } = await import("./db");

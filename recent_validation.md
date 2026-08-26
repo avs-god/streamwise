@@ -105,3 +105,9 @@ The final suite passed **19 Vitest files / 90 tests**, **9 Playwright checks**, 
 ## Direct Leaving Soon grounded response — 2026-08-25
 
 Leaving Soon title and provider queries now display the validated direct grounded-model response in the public-web lane, followed by inspectable reporting and public-discussion links. The lane stays explicitly separate from confirmed saved-title snapshots and unverified community reports, and cannot create a departure date, legal offer, or alert by itself. Focused grounded-AI contracts, the browser suite, TypeScript, and the production build passed after this update.
+
+## Managed fallback and confirmed provider-change delivery readiness — 2026-08-26
+
+The managed AI path stays active when `AI_PROVIDER=openai` is selected without `OPENAI_API_KEY`; the dedicated fallback contract passed. When both values are added later, Streamwise automatically prioritizes the direct OpenAI-compatible Responses API path. Updates now includes a private provider-change digest assembled exclusively from observed country-specific snapshots, plus opt-in email controls and a candid Resend readiness state.
+
+Resend delivery remains server-only and makes no network request until both `RESEND_API_KEY` and a verified `RESEND_FROM_EMAIL` exist. Once configured, it sends an opted-in availability-change update only for an observed legal snapshot difference and only to a member account with an email address; community and public-web leads are never included. Focused AI/email contracts passed **13 tests**, TypeScript and production build passed, and the inactive-provider Updates UI was visually reviewed.

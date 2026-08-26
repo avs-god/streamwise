@@ -14,6 +14,20 @@ vi.mock("./_core/llm", () => mockedLlm);
 import { cleanSummary, parseStructuredLead, researchDiscoveryLead, resolveResearchQuery, sourcesFrom } from "./aiDiscovery";
 
 describe("AI discovery provenance", () => {
+  it("keeps the managed research fallback active when direct-provider selection has no API key", async () => {
+    const previousProvider = process.env.AI_PROVIDER;
+    const previousKey = process.env.OPENAI_API_KEY;
+    process.env.AI_PROVIDER = "openai";
+    delete process.env.OPENAI_API_KEY;
+    try {
+      const result = await researchDiscoveryLead({ query: "A platform update", region: "US", language: "en-US" });
+      expect(result.status).toBe("lead");
+      expect(mockedLlm.invokeLLM).toHaveBeenCalled();
+    } finally {
+      if (previousProvider === undefined) delete process.env.AI_PROVIDER; else process.env.AI_PROVIDER = previousProvider;
+      if (previousKey === undefined) delete process.env.OPENAI_API_KEY; else process.env.OPENAI_API_KEY = previousKey;
+    }
+  });
   it("separates social-network citations into generic community links", () => {
     const groups = sourcesFrom([{ title: "Official", url: "https://studio.example/news" }, { title: "Thread", url: "https://x.com/person/status/1" }, { title: "Post", url: "https://www.instagram.com/p/example" }]);
     expect(groups.sources).toEqual([{ title: "Official", url: "https://studio.example/news", domain: "studio.example", kind: "reporting" }]);
