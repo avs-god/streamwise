@@ -2,6 +2,8 @@ import AppFrame from "@/components/AppFrame";
 import TitleDialog from "@/components/TitleDialog";
 import AiResearchPanel from "@/components/AiResearchPanel";
 import CatalogOfferPreview from "@/components/CatalogOfferPreview";
+import CardCommunityContribution from "@/components/CardCommunityContribution";
+import LeavingSoonSignal from "@/components/LeavingSoonSignal";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -96,7 +98,7 @@ export function LegalOfferPanel({ title, region, onSave }: { title: LegalTitle; 
 
 function RelatedTitleGrid({ eyebrow, title, titles, mediaType, region, language }: { eyebrow: string; title: string; titles: Array<{ id: number; mediaType: "movie" | "tv"; title: string; overview: string | null }>; mediaType: "movie" | "tv"; region: string; language: string }) {
   if (!titles.length) return null;
-  return <section className="mt-9 border-t border-[#d9d1c0] pt-7"><p className="eyebrow">{eyebrow}</p><h2 className="serif mt-2 text-3xl text-[#214a3a]">{title}</h2><p className="mt-2 text-sm text-[#65776f]">Catalog-derived related titles. Verified country-specific legal offers appear before any external or community context.</p><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{titles.map(item => <Link key={`${item.mediaType}-${item.id}`} href={`/title/${item.mediaType}/${item.id}`} className="rounded-xl border border-[#d8d1c2] bg-white/65 p-4 transition hover:-translate-y-0.5 hover:bg-[#f2f7f0]"><p className="font-semibold text-[#315c49]">{item.title}</p><p className="mt-1 line-clamp-2 text-sm leading-5 text-[#6c7d74]">{item.overview || "Open this title to check country-specific legal offers."}</p><CatalogOfferPreview titleId={item.id} mediaType={item.mediaType} region={region} language={language} /></Link>)}</div></section>;
+  return <section className="mt-9 border-t border-[#d9d1c0] pt-7"><p className="eyebrow">{eyebrow}</p><h2 className="serif mt-2 text-3xl text-[#214a3a]">{title}</h2><p className="mt-2 text-sm text-[#65776f]">Catalog-derived related titles. Verified country-specific legal offers appear before any external or community context.</p><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{titles.map(item => <article key={`${item.mediaType}-${item.id}`} className="rounded-xl border border-[#d8d1c2] bg-white/65 p-4 transition hover:-translate-y-0.5 hover:bg-[#f2f7f0]"><Link href={`/title/${item.mediaType}/${item.id}`} className="block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><p className="font-semibold text-[#315c49]">{item.title}</p><p className="mt-1 line-clamp-2 text-sm leading-5 text-[#6c7d74]">{item.overview || "Open this title to check country-specific legal offers."}</p><CatalogOfferPreview titleId={item.id} mediaType={item.mediaType} region={region} language={language} /></Link><LeavingSoonSignal titleId={item.id} mediaType={item.mediaType} /><CardCommunityContribution titleId={item.id} mediaType={item.mediaType} title={item.title} region={region} /></article>)}</div></section>;
 }
 
 export function TitleCommunity({ titleId, titleName, mediaType }: { titleId: number; titleName: string; mediaType: "movie" | "tv" }) {

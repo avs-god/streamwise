@@ -204,9 +204,9 @@
 - [x] Document the direct model-provider environment variables, server-only key handling, web-search boundary, and independent deployment behavior without committing keys.
 - [x] Add a direct, source-linked GPT-compatible public-web Leaving Soon research response for title and provider queries, visibly separate from confirmed legal snapshots and community reports.
 - [x] Add direct-response, source, loading, error, no-source, accessibility, browser, type, production-build, and independent-provider validation for Leaving Soon tracking.
-- [ ] Add reusable, source-labelled Leaving Soon signals to every supported movie-card surface, combining visible community reports and source-linked public-web context without changing legal-offer truth.
-- [ ] Add an accessible card-level community contribution dialog for a title-linked leaving-soon report or member review, including provider selection, optional report details, validation, authentication, source links, and moderation-safe submission.
-- [ ] Test card signal aggregation, contribution-dialog states, submission contracts, keyboard access, type safety, browser flows, and production build; publish the update.
+- [x] Add reusable, source-labelled Leaving Soon signals to every supported movie-card surface, combining visible community reports and source-linked public-web context without changing legal-offer truth.
+- [x] Add an accessible card-level community contribution dialog for a title-linked leaving-soon report or member review, including provider selection, optional report details, validation, authentication, source links, and moderation-safe submission.
+- [x] Test card signal aggregation, contribution-dialog states, submission contracts, keyboard access, type safety, browser flows, and production build; publish the update.
 - [x] Add a member-opt-in provider-change digest that groups confirmed snapshot changes without using public-web or community leads as legal evidence.
 - [x] Add independent OpenAI-compatible provider and Resend delivery readiness status surfaces with server-only configuration, verified-sender safeguards, and candid inactive states.
 - [x] Validate the digest, independent-AI configuration, inactive email-provider behavior, type safety, browser states, and production build; leave secure deployment values for later entry.

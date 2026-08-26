@@ -378,3 +378,10 @@ export async function getCommunityTitleReviews(input: { tmdbId: number; mediaTyp
   const rows = await db.select({ post: communityPosts, contributorName: users.name }).from(communityPosts).leftJoin(users, eq(communityPosts.userId, users.id)).where(and(eq(communityPosts.tmdbId, input.tmdbId), eq(communityPosts.mediaType, input.mediaType), eq(communityPosts.kind, "review"), eq(communityPosts.status, "visible"))).orderBy(desc(communityPosts.createdAt)).limit(60);
   return rows.filter(({ post }) => post.status === "visible").map(({ post, contributorName }) => toPublicCommunityItem(post, contributorName));
 }
+
+/** Visible member reports only. These are contextual signals, never legal-offer or alert evidence. */
+export async function getCommunityTitleLeavingSoonSignals(input: { tmdbId: number; mediaType: "movie" | "tv" }) {
+  const db = await getDb(); if (!db) return [];
+  const rows = await db.select({ post: communityPosts, contributorName: users.name }).from(communityPosts).leftJoin(users, eq(communityPosts.userId, users.id)).where(and(eq(communityPosts.tmdbId, input.tmdbId), eq(communityPosts.mediaType, input.mediaType), eq(communityPosts.kind, "leaving_soon"), eq(communityPosts.status, "visible"))).orderBy(desc(communityPosts.createdAt)).limit(5);
+  return rows.filter(({ post }) => post.status === "visible").map(({ post, contributorName }) => toPublicCommunityItem(post, contributorName));
+}
