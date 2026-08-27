@@ -1,0 +1,132 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1787569780080,
+      "tag": "0000_sticky_kitty_pryde",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1787570598351,
+      "tag": "0001_free_eddie_brock",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1787571131054,
+      "tag": "0002_flimsy_blackheart",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1787577968936,
+      "tag": "0003_ambiguous_green_goblin",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1787578342215,
+      "tag": "0004_chubby_avengers",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1787578833939,
+      "tag": "0005_left_shadowcat",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1787582068024,
+      "tag": "0006_bouncy_spectrum",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1787583352627,
+      "tag": "0007_misty_bloodaxe",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1787593191140,
+      "tag": "0008_curvy_hulk",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1787596980372,
+      "tag": "0009_little_lucky_pierre",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1787636034797,
+      "tag": "0010_tranquil_red_shift",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1787636817148,
+      "tag": "0011_gray_scarlet_witch",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1787667907100,
+      "tag": "0012_safe_wilson_fisk",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "5",
+      "when": 1787679679579,
+      "tag": "0013_swift_killraven",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "5",
+      "when": 1787801976687,
+      "tag": "0014_daffy_captain_stacy",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "5",
+      "when": 1787809755790,
+      "tag": "0015_good_madripoor",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "5",
+      "when": 1787810992114,
+      "tag": "0016_slow_white_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "5",
+      "when": 1787811832886,
+      "tag": "0017_magenta_maelstrom",
+      "breakpoints": true
+    }
+  ]
+}

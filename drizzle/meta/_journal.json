@@ -113,6 +113,48 @@
       "when": 1787809755790,
       "tag": "0015_good_madripoor",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "5",
+      "when": 1787810992114,
+      "tag": "0016_slow_white_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "5",
+      "when": 1787811832886,
+      "tag": "0017_magenta_maelstrom",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "5",
+      "when": 1787812527893,
+      "tag": "0018_freezing_winter_soldier",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "5",
+      "when": 1787814734425,
+      "tag": "0019_odd_nuke",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "5",
+      "when": 1787814908737,
+      "tag": "0020_mysterious_frightful_four",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "5",
+      "when": 1787815865077,
+      "tag": "0021_steady_mindworm",
+      "breakpoints": true
     }
   ]
 }

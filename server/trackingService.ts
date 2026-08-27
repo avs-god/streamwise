@@ -8,6 +8,8 @@ import {
   getOwnedWatchlistItem,
   getProviderAlertSubscriptions,
   getUserById,
+  resolveConfirmedProviderDeparture,
+  upsertConfirmedProviderDeparture,
   updateWatchlistAvailability,
 } from "./db";
 import { sendOptedInEmail } from "./email";
@@ -38,11 +40,19 @@ export async function refreshTrackedTitle(userId: number, watchlistItemId: numbe
     await addAvailabilitySnapshot({ watchlistItemId: item.id, region: item.availabilityRegion, offersJson: JSON.stringify(offers), fingerprint, sourceUrl: detail.providerPageUrl, checkedAt });
   }
   if (latest && change.changed && item.monitorAvailability) {
+    const observedAt = new Date(detail.checkedAt);
+    const expiresAt = new Date(observedAt.getTime() + 21 * 24 * 60 * 60 * 1000);
+    for (const removed of change.removed.filter(offer => offer.type === "stream" || offer.type === "free" || offer.type === "ads")) {
+      await upsertConfirmedProviderDeparture({ tmdbId: item.tmdbId, mediaType: item.mediaType, region: item.availabilityRegion, title: item.title, providerName: removed.name, providerType: removed.type, sourceKind: "snapshot", sourceUrl: detail.providerPageUrl, observedAt, expiresAt });
+    }
+    for (const added of change.added.filter(offer => offer.type === "stream" || offer.type === "free" || offer.type === "ads")) {
+      await resolveConfirmedProviderDeparture({ tmdbId: item.tmdbId, mediaType: item.mediaType, region: item.availabilityRegion, providerName: added.name });
+    }
     const preferences = await getAlertPreferences(userId);
     const providerSelections = await getProviderAlertSubscriptions(userId);
     if (preferences.availabilityChangesEnabled && preferences.inAppEnabled && matchesProviderAlertSelection(change, providerSelections, item.availabilityRegion)) {
       const title = `Availability changed: ${item.title}`;
-      const body = `${change.summary} This is an observed difference between two ${item.availabilityRegion} source snapshots; it is not a confirmed leaving-soon notice.`;
+      const body = `${change.summary} Removed streaming, free, or ad-supported providers are retained as time-bounded observed departure signals. This is an observed difference between two ${item.availabilityRegion} source snapshots, not an announced departure date.`;
       await createAlert({ userId, type: "availability_changed", title, body, payloadJson: JSON.stringify({ watchlistItemId: item.id, region: item.availabilityRegion, added: change.added, removed: change.removed, checkedAt: detail.checkedAt }) });
       if (preferences.emailEnabled && preferences.emailLeavingSoonEnabled) {
         const user = await getUserById(userId);

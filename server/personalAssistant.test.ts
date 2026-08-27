@@ -5,6 +5,9 @@ const mockDb = vi.hoisted(() => ({
   getWatchlist: vi.fn(async () => [{ title: "A Saved Film", plannedFor: "this_month", providerNamesJson: "[\"Netflix\"]", availabilityCheckedAt: new Date("2026-08-20") }]),
   getViewingSignals: vi.fn(async () => [{ title: "A Recorded Film", mediaType: "movie", status: "watched", recordedAt: new Date("2026-08-21") }]),
   getAlertPreferences: vi.fn(async () => ({ inAppEnabled: true, renewalRemindersEnabled: true, pauseRemindersEnabled: false, renewalLeadDays: 7 })),
+  getTasteProfile: vi.fn(async () => ({ favoriteGenresJson: "[878]", preferredLanguagesJson: "[\"en\"]", maxRuntimeMinutes: 150, includeMovies: true, includeSeries: false })),
+  getAlerts: vi.fn(async () => [{ type: "renewal_due", title: "Netflix renewal", body: "Your renewal is due.", isRead: false, createdAt: new Date("2026-08-25") }]),
+  getOwnCommunityContributions: vi.fn(async () => [{ title: "A Saved Film", kind: "review", region: "IN", providerName: null, status: "visible", createdAt: new Date("2026-08-24") }]),
 }));
 const mockLlm = vi.hoisted(() => ({
   listLLMModels: vi.fn(async () => ({ data: [{ id: "gpt-5-mini" }] })),
@@ -29,8 +32,12 @@ describe("personal assistant privacy contract", () => {
     expect(mockDb.getWatchlist).toHaveBeenCalledWith(41);
     expect(mockDb.getViewingSignals).toHaveBeenCalledWith(41);
     expect(mockDb.getAlertPreferences).toHaveBeenCalledWith(41);
+    expect(mockDb.getTasteProfile).toHaveBeenCalledWith(41);
+    expect(mockDb.getAlerts).toHaveBeenCalledWith(41);
+    expect(mockDb.getOwnCommunityContributions).toHaveBeenCalledWith(41);
     expect(reply.usedInputs).toContain("Netflix Standard renewal date");
     expect(mockLlm.invokeLLM).toHaveBeenCalledWith(expect.objectContaining({ outputSchema: expect.any(Object) }));
     expect(mockLlm.invokeLLM.mock.calls[0]?.[0].messages[0]?.content).toContain("never infer it from public discussion");
+    expect(mockLlm.invokeLLM.mock.calls[0]?.[0].messages[1]?.content).toContain("memberCommunityContributions");
   });
 });

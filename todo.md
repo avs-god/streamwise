@@ -219,7 +219,29 @@
 - [x] Restore immediate public publication for community contributions, retaining source labels and post-publication reporting/takedown controls.
 - [x] Move administrator-only contribution and discussion report tooling into a dedicated protected moderation panel with clear navigation and public access denial.
 - [x] Validate immediate-publication visibility, dedicated administrator panel authorization, report/takedown actions, keyboard accessibility, type safety, browser flows, and production build; publish the update.
-- [ ] Audit and refine phone-scale layouts, tap targets, overflow behavior, and mobile content hierarchy across Streamwise’s primary pages.
-- [ ] Replace the mobile top-link strip with an accessible slide-in navigation drawer while retaining desktop navigation and administrator-only moderation access.
-- [ ] Add an always-available bottom-right assistant launcher and extend the assistant’s explicit-context briefing with saved watchlist, viewing signals, wallet, alerts, taste preferences, and opted-in community context.
-- [ ] Validate dedicated moderation, mobile navigation, responsive layouts, persistent assistant access, context boundaries, keyboard behavior, type safety, browser flows, and production build; publish the update.
+- [x] Audit and refine phone-scale layouts, tap targets, overflow behavior, and mobile content hierarchy across Streamwise’s primary pages.
+- [x] Replace the mobile top-link strip with an accessible slide-in navigation drawer while retaining desktop navigation and administrator-only moderation access.
+- [x] Add an always-available bottom-right assistant launcher and extend the assistant’s explicit-context briefing with saved watchlist, viewing signals, wallet, alerts, taste preferences, and opted-in community context.
+- [x] Validate dedicated moderation, mobile navigation, responsive layouts, persistent assistant access, context boundaries, keyboard behavior, type safety, browser flows, and production build; publish the update.
+- [x] Store the supplied OMDb credential only as a server-side secret and verify it without exposing it in code, browser responses, unrelated requests, or documentation.
+- [x] Add source-labelled, exact-match OMDb ratings and TMDb vote/user-review adapters to detailed title views without substituting values across sources.
+- [x] Add a durable, quota-safe Streaming Availability `expiring` change-feed pass to the existing scheduled refresh and distinguish its exact expiry records from snapshot-difference departures.
+- [x] Scope Leaving Soon card signals to country and show a provider-specific expiry label only for provider change-feed or observed legal-snapshot records, keeping community and public-web context separate.
+- [x] Complete the mobile slide-in navigation and persistent assistant launcher while preserving the shared owl branding revision.
+- [x] Validate provider API guards, provider quota/no-data behavior, title insights, scheduled Leaving Soon refresh, mobile drawer, assistant context, accessibility, type safety, browser flows, and production build; publish the update.
+- [x] Add a mobile-installable web app manifest, service worker, installation prompt, offline-safe shell, and install-state user interface without blocking browser use.
+- [x] Add explicit browser-notification permission controls and member-owned push subscription records for opted-in reminders, tracking, and updates, with no permission prompt on page load.
+- [x] Add server-side push delivery readiness with server-only VAPID configuration, unconfigured/error states, and delivery only for alerts the member opted into.
+- [x] Validate PWA manifest/service-worker registration, installation UI, notification permission and subscription controls, no-key fallback, selected-alert routing, mobile accessibility, type safety, browser flows, and production build; publish the update.
+- [x] Add explicit accessible Discovery search loading, submission, and independent legal/public-web research transition states without conflating result lanes.
+- [x] Validate Discovery loading states across keyboard, error, empty, mobile, type safety, browser, and production-build flows.
+- [x] Add source-labelled theatrical-now status from current catalog release metadata without presenting theater status as a streaming offer.
+- [x] Add a separate official/provider or source-linked reporting lane for announced OTT-release dates, retaining the announcement source, country, retrieval time, and uncertainty state.
+- [x] Display theatre and announced-OTT ETA labels across supported movie-card surfaces without substituting them for verified current legal offers.
+- [x] Validate theatrical/OTT signal sources, invalid or missing dates, source/empty/error states, provider/mobile/push/loading workflows, type safety, browser flows, and production build; publish the update.
+- [x] Extend all supported catalog movie-card surfaces with source-labelled TMDb vote metadata, exact-match OMDb ratings, and bounded TMDb review context, including candid loading, no-result, and unavailable states.
+- [x] Add focused component and browser coverage for card-level provider ratings/reviews without treating any source as a substitute for another.
+- [x] Add an accessible, reduced-motion-aware streaming-provider logo ribbon directly below Discovery search controls, using licensed/official visual assets or text marks without implying provider partnership or availability.
+- [x] Research and integrate a legal anime catalog/discovery source with normalized anime title metadata, while retaining TMDb, Watchmode, and Streaming Availability as separate country-specific offer sources.
+- [x] Add an anime search mode, anime-specific title cards and source-labelled public-web context, without treating anime database metadata or web discussion as verified legal availability.
+- [x] Validate provider-ribbon accessibility, anime discovery/empty/error states, source boundaries, card insights, mobile layouts, type safety, browser flows, production build, and standalone deployment; publish the update.

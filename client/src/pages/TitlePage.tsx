@@ -4,6 +4,7 @@ import AiResearchPanel from "@/components/AiResearchPanel";
 import CatalogOfferPreview from "@/components/CatalogOfferPreview";
 import CardCommunityContribution from "@/components/CardCommunityContribution";
 import LeavingSoonSignal from "@/components/LeavingSoonSignal";
+import { TitleRatingsPanel, TmdbReviewPanel } from "@/components/TitleInsights";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -25,6 +26,9 @@ type LegalTitle = {
   releaseDate: string | null;
   runtime: number | null;
   genres: string[];
+  tmdbVoteAverage: number | null;
+  tmdbVoteCount: number | null;
+  imdbId: string | null;
 };
 
 export default function TitlePage() {
@@ -46,6 +50,9 @@ export default function TitlePage() {
     {result.isLoading ? <section className="mt-7 rounded-3xl border border-[#b9d0bf] bg-[#edf5ee] p-7"><TitleLoadingNotice /></section> : !title || !result.data?.configured ? <section className="mt-7 rounded-3xl border border-[#d9cfb7] bg-[#fffaf0] p-7"><TitleStandbyNotice /><TitleCommunity titleId={id} titleName={`Catalog title ${id}`} mediaType={mediaType} /></section> : <section className="mt-7">
       <p className="eyebrow">Provider-first title page</p><h1 className="serif mt-2 text-5xl text-[#214a3a]">{title.title}</h1><TitleMetadata title={title} /><p className="mt-4 max-w-3xl leading-7 text-[#64766e]">{title.overview}</p>
       <LegalOfferPanel title={title} region={region} onSave={() => setSaveDialogOpen(true)} />
+      <LeavingSoonSignal titleId={title.id} mediaType={title.mediaType} region={region} />
+      <TitleRatingsPanel title={title} />
+      <TmdbReviewPanel title={title} />
       <div className="mt-6"><AiResearchPanel region={region} language={language} query={`${title.title}${title.releaseDate ? ` ${title.releaseDate.slice(0, 4)}` : ""}`} /></div>
       <Link href={`/community?tmdbId=${title.id}&mediaType=${title.mediaType}&title=${encodeURIComponent(title.title)}`} className="mt-4 inline-flex items-center rounded-full border border-[#9eb6a4] bg-white px-4 py-2 text-sm font-semibold text-[#27543f] transition hover:bg-[#edf5ee]">Discuss this title with the community</Link>
       <ExternalReferencePanel encodedTitle={encodedTitle} />

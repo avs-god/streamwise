@@ -12,7 +12,7 @@ describe("live legal-offer comparison", () => {
       expect(result.title.watchmodeOffers.length).toBeGreaterThan(0);
       expect(result.title.watchmodeOffers.every(offer => offer.source === "Watchmode" && Boolean(offer.webUrl))).toBe(true);
     }
-    expect(["available", "unavailable"]).toContain(result.title?.streamingAvailabilityStatus);
+    expect(["available", "unavailable", "not_configured"]).toContain(result.title?.streamingAvailabilityStatus);
     if (result.title?.streamingAvailabilityStatus === "available") {
       expect(result.title.streamingAvailabilityOffers.length).toBeGreaterThan(0);
       expect(result.title.streamingAvailabilityOffers.every(offer => offer.source === "Streaming Availability by Movie of the Night" && Boolean(offer.webUrl))).toBe(true);

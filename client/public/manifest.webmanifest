@@ -1,0 +1,13 @@
+{
+  "id": "/",
+  "name": "Streamwise",
+  "short_name": "Streamwise",
+  "description": "Find legal streaming options and make transparent subscription decisions.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#faf8f1",
+  "theme_color": "#1e4a3a",
+  "categories": ["entertainment", "lifestyle"],
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

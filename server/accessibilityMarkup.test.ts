@@ -12,7 +12,9 @@ describe("keyboard and semantic-accessibility regression checks", () => {
     const styles = source("client/src/index.css");
 
     expect(frame).toContain('aria-label="Primary"');
-    expect(frame).toContain('aria-label="Mobile primary"');
+    expect(frame).toContain('aria-label="Mobile navigation"');
+    expect(frame).toContain('aria-label="Open menu"');
+    expect(frame).toContain("<AssistantLauncher />");
     expect(frame).toContain('aria-label="Sign out"');
     expect(frame).toContain("focus-visible:ring-2");
     expect(styles).toContain("focus-visible");

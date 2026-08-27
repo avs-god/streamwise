@@ -1,17 +1,21 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, gt, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
+  announcedStreamingReleases,
   alertPreferences,
   alerts,
   availabilitySnapshots,
+  browserPushSubscriptions,
   communityPosts,
   communityReports,
   communityThreadReplies,
   communityThreadReports,
   communityThreads,
   communityTitleRatings,
+  confirmedProviderDepartures,
   InsertUser,
   providerAlertSubscriptions,
+  publicLeavingSoonResearch,
   scheduledJobs,
   subscriptionActions,
   subscriptions,
@@ -81,6 +85,36 @@ export async function getWatchlist(userId: number) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(watchlistItems).where(eq(watchlistItems.userId, userId));
+}
+
+export type BrowserPushSubscriptionInput = { endpoint: string; p256dh: string; auth: string; userAgent?: string | null };
+export async function upsertBrowserPushSubscription(userId: number, input: BrowserPushSubscriptionInput) {
+  const db = await getDb(); if (!db) throw new Error("Database unavailable");
+  await db.insert(browserPushSubscriptions).values({ userId, endpoint: input.endpoint.slice(0, 2048), p256dh: input.p256dh.slice(0, 512), auth: input.auth.slice(0, 512), userAgent: input.userAgent?.slice(0, 500) ?? null }).onDuplicateKeyUpdate({ set: { userId, p256dh: input.p256dh.slice(0, 512), auth: input.auth.slice(0, 512), userAgent: input.userAgent?.slice(0, 500) ?? null } });
+}
+
+export async function getBrowserPushSubscriptions(userId: number) {
+  const db = await getDb(); if (!db) return [] as Array<{ id: number; endpoint: string; p256dh: string; auth: string }>;
+  return db.select({ id: browserPushSubscriptions.id, endpoint: browserPushSubscriptions.endpoint, p256dh: browserPushSubscriptions.p256dh, auth: browserPushSubscriptions.auth }).from(browserPushSubscriptions).where(eq(browserPushSubscriptions.userId, userId));
+}
+
+export async function removeBrowserPushSubscription(userId: number, endpoint: string) {
+  const db = await getDb(); if (!db) return;
+  await db.delete(browserPushSubscriptions).where(and(eq(browserPushSubscriptions.userId, userId), eq(browserPushSubscriptions.endpoint, endpoint)));
+}
+
+/** Globally de-duplicated monitored title regions for provider change feeds; contains no account identifiers. */
+export async function getTrackedTitleRegions(limit = 160) {
+  const db = await getDb();
+  if (!db) return [] as Array<{ tmdbId: number; mediaType: "movie" | "tv"; title: string; region: string }>;
+  const rows = await db.select({ tmdbId: watchlistItems.tmdbId, mediaType: watchlistItems.mediaType, title: watchlistItems.title, region: watchlistItems.availabilityRegion }).from(watchlistItems).where(eq(watchlistItems.monitorAvailability, true)).limit(limit);
+  const seen = new Set<string>();
+  return rows.flatMap(row => {
+    const key = `${row.tmdbId}:${row.mediaType}:${row.region}`;
+    if (seen.has(key)) return [];
+    seen.add(key);
+    return [{ tmdbId: row.tmdbId, mediaType: row.mediaType, title: row.title, region: row.region }];
+  });
 }
 
 export async function getOwnedWatchlistItem(userId: number, id: number) {
@@ -163,7 +197,7 @@ export async function getAlertPreferences(userId: number) {
   return (await db.select().from(alertPreferences).where(eq(alertPreferences.userId, userId)).limit(1))[0];
 }
 
-export async function updateAlertPreferences(userId: number, input: { availabilityChangesEnabled: boolean; renewalRemindersEnabled: boolean; pauseRemindersEnabled: boolean; renewalLeadDays: number; inAppEnabled: boolean; emailEnabled: boolean; emailRecommendationEnabled: boolean; emailLeavingSoonEnabled: boolean; emailCommunityEnabled: boolean }) {
+export async function updateAlertPreferences(userId: number, input: { availabilityChangesEnabled: boolean; renewalRemindersEnabled: boolean; pauseRemindersEnabled: boolean; renewalLeadDays: number; inAppEnabled: boolean; emailEnabled: boolean; emailRecommendationEnabled: boolean; emailLeavingSoonEnabled: boolean; emailCommunityEnabled: boolean; pushEnabled: boolean }) {
   const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
   await db.insert(alertPreferences).values({ userId, ...input }).onDuplicateKeyUpdate({ set: input });
   return getAlertPreferences(userId);
@@ -290,6 +324,12 @@ export async function getCommunityPosts(input: { region?: string; kind?: Communi
   return rows.filter(({ post }) => post.status === "visible").map(({ post, contributorName }) => toPublicCommunityItem(post, contributorName));
 }
 
+/** The private assistant may use only a member's own deliberate community contributions, never others' posts or inferred activity. */
+export async function getOwnCommunityContributions(userId: number) {
+  const db = await getDb(); if (!db) return [];
+  return db.select({ title: communityPosts.title, kind: communityPosts.kind, region: communityPosts.region, providerName: communityPosts.providerName, createdAt: communityPosts.createdAt, status: communityPosts.status }).from(communityPosts).where(eq(communityPosts.userId, userId)).orderBy(desc(communityPosts.createdAt)).limit(20);
+}
+
 export async function reportCommunityPost(userId: number, postId: number, input: { reason: "misleading" | "spam" | "abuse" | "privacy" | "other"; detail: string | null }) {
   const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
   const post = (await db.select({ id: communityPosts.id }).from(communityPosts).where(eq(communityPosts.id, postId)).limit(1))[0];
@@ -404,4 +444,44 @@ export async function getCommunityTitleLeavingSoonSignals(input: { tmdbId: numbe
   const db = await getDb(); if (!db) return [];
   const rows = await db.select({ post: communityPosts, contributorName: users.name }).from(communityPosts).leftJoin(users, eq(communityPosts.userId, users.id)).where(and(eq(communityPosts.tmdbId, input.tmdbId), eq(communityPosts.mediaType, input.mediaType), eq(communityPosts.kind, "leaving_soon"), eq(communityPosts.status, "visible"))).orderBy(desc(communityPosts.createdAt)).limit(5);
   return rows.filter(({ post }) => post.status === "visible").map(({ post, contributorName }) => toPublicCommunityItem(post, contributorName));
+}
+
+export async function upsertConfirmedProviderDeparture(input: { tmdbId: number; mediaType: "movie" | "tv"; region: string; title: string; providerName: string; providerType: string; sourceKind?: "change_feed" | "snapshot"; sourceUrl: string | null; observedAt: Date; expiresAt: Date }) {
+  const db = await getDb(); if (!db) return;
+  await db.insert(confirmedProviderDepartures).values({ ...input, sourceKind: input.sourceKind ?? "snapshot", status: "active", firstObservedAt: input.observedAt, lastObservedAt: input.observedAt }).onDuplicateKeyUpdate({ set: { title: input.title, providerType: input.providerType, sourceKind: input.sourceKind ?? "snapshot", sourceUrl: input.sourceUrl, lastObservedAt: input.observedAt, expiresAt: input.expiresAt, status: "active" } });
+}
+
+export async function resolveConfirmedProviderDeparture(input: { tmdbId: number; mediaType: "movie" | "tv"; region: string; providerName: string }) {
+  const db = await getDb(); if (!db) return;
+  await db.update(confirmedProviderDepartures).set({ status: "resolved" }).where(and(eq(confirmedProviderDepartures.tmdbId, input.tmdbId), eq(confirmedProviderDepartures.mediaType, input.mediaType), eq(confirmedProviderDepartures.region, input.region), eq(confirmedProviderDepartures.providerName, input.providerName), eq(confirmedProviderDepartures.status, "active")));
+}
+
+export async function getActiveConfirmedProviderDepartures(input: { tmdbId: number; mediaType: "movie" | "tv"; region: string }) {
+  const db = await getDb(); if (!db) return [];
+  return db.select().from(confirmedProviderDepartures).where(and(eq(confirmedProviderDepartures.tmdbId, input.tmdbId), eq(confirmedProviderDepartures.mediaType, input.mediaType), eq(confirmedProviderDepartures.region, input.region), eq(confirmedProviderDepartures.status, "active"), gt(confirmedProviderDepartures.expiresAt, new Date()))).orderBy(desc(confirmedProviderDepartures.lastObservedAt)).limit(5);
+}
+
+type PublicWebSource = { title: string; url: string; domain: string; kind: "reporting" | "community" };
+function parsePublicSources(value: string): PublicWebSource[] { try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed.filter(item => item && typeof item.title === "string" && typeof item.url === "string" && typeof item.domain === "string" && (item.kind === "reporting" || item.kind === "community")).slice(0, 5) : []; } catch { return []; } }
+
+export async function upsertPublicLeavingSoonResearch(input: { tmdbId: number; mediaType: "movie" | "tv"; region: string; directResponse: string; sources: PublicWebSource[]; communitySources: PublicWebSource[]; status: "lead" | "insufficient" | "unavailable"; searchedAt: Date; expiresAt: Date }) {
+  const db = await getDb(); if (!db) return;
+  await db.insert(publicLeavingSoonResearch).values({ tmdbId: input.tmdbId, mediaType: input.mediaType, region: input.region, directResponse: input.directResponse.slice(0, 1500), sourcesJson: JSON.stringify(input.sources.slice(0, 5)), communitySourcesJson: JSON.stringify(input.communitySources.slice(0, 5)), status: input.status, searchedAt: input.searchedAt, expiresAt: input.expiresAt }).onDuplicateKeyUpdate({ set: { directResponse: input.directResponse.slice(0, 1500), sourcesJson: JSON.stringify(input.sources.slice(0, 5)), communitySourcesJson: JSON.stringify(input.communitySources.slice(0, 5)), status: input.status, searchedAt: input.searchedAt, expiresAt: input.expiresAt } });
+}
+
+export async function getActivePublicLeavingSoonResearch(input: { tmdbId: number; mediaType: "movie" | "tv"; region: string }) {
+  const db = await getDb(); if (!db) return null;
+  const row = (await db.select().from(publicLeavingSoonResearch).where(and(eq(publicLeavingSoonResearch.tmdbId, input.tmdbId), eq(publicLeavingSoonResearch.mediaType, input.mediaType), eq(publicLeavingSoonResearch.region, input.region), gt(publicLeavingSoonResearch.expiresAt, new Date()))).orderBy(desc(publicLeavingSoonResearch.searchedAt)).limit(1))[0];
+  return row ? { ...row, sources: parsePublicSources(row.sourcesJson), communitySources: parsePublicSources(row.communitySourcesJson) } : null;
+}
+
+/** Upcoming dates come only from the documented provider feed and remain separate from currently streamable offers. */
+export async function upsertAnnouncedStreamingRelease(input: { tmdbId: number; mediaType: "movie" | "tv"; region: string; title: string; providerName: string; providerType: string; sourceUrl: string | null; announcedFor: Date; retrievedAt: Date; expiresAt: Date }) {
+  const db = await getDb(); if (!db) return;
+  await db.insert(announcedStreamingReleases).values({ ...input, sourceKind: "provider_change_feed", status: "active" }).onDuplicateKeyUpdate({ set: { title: input.title, providerType: input.providerType, sourceUrl: input.sourceUrl, announcedFor: input.announcedFor, retrievedAt: input.retrievedAt, expiresAt: input.expiresAt, status: "active" } });
+}
+
+export async function getActiveAnnouncedStreamingReleases(input: { tmdbId: number; mediaType: "movie" | "tv"; region: string }) {
+  const db = await getDb(); if (!db) return [];
+  return db.select().from(announcedStreamingReleases).where(and(eq(announcedStreamingReleases.tmdbId, input.tmdbId), eq(announcedStreamingReleases.mediaType, input.mediaType), eq(announcedStreamingReleases.region, input.region), eq(announcedStreamingReleases.status, "active"), gt(announcedStreamingReleases.announcedFor, new Date(Date.now() - 86_400_000)), gt(announcedStreamingReleases.expiresAt, new Date()))).orderBy(announcedStreamingReleases.announcedFor).limit(5);
 }

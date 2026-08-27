@@ -12,6 +12,8 @@ import {
   createThreadReply,
   createAlert,
   getAlertPreferences,
+  getActiveConfirmedProviderDepartures,
+  getActivePublicLeavingSoonResearch,
   getProviderAlertSubscriptions,
   getAlerts,
   getCommunityPosts,
@@ -51,13 +53,17 @@ import {
   setCommunityThreadReplyStatus,
   setProviderAlertSubscription,
 } from "./db";
-import { discoverCatalog, getCatalogDetail, getRecommendedCatalogTitles, getSimilarCatalogTitles, isCatalogConfigured, mergePostWatchRecommendations, recommendCatalogFromIntent, searchCatalog } from "./catalog";
+import { discoverCatalog, getCatalogDetail, getRecommendedCatalogTitles, getSimilarCatalogTitles, getTmdbReviews, isCatalogConfigured, mergePostWatchRecommendations, recommendCatalogFromIntent, searchCatalog } from "./catalog";
+import { getOmdbRatings } from "./omdb";
 import { refreshTrackedTitle, refreshTrackedTitlesForUser } from "./trackingService";
 import { syncRenewalAlerts } from "./alertService";
 import { researchDiscoveryLead } from "./aiDiscovery";
 import { interpretRecommendationPrompt } from "./aiRecommendations";
 import { askPersonalAssistant } from "./personalAssistant";
 import { getEmailDeliveryStatus } from "./email";
+import { getBrowserPushDeliveryStatus } from "./browserPush";
+import { getTitleReleaseSignals } from "./releaseSignals";
+import { getAnimeLegalAvailability, searchAnimeCatalog } from "./anime";
 import { buildSubscriptionDecisions } from "./recommendations";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -97,6 +103,10 @@ export const appRouter = router({
     discover: publicProcedure.input(z.object({ mode: z.enum(["popular", "top_rated", "genre"]), mediaType: z.enum(["movie", "tv", "all"]).default("all"), region: z.string().regex(/^[A-Z]{2}$/), language: z.string().default("en-US"), genreId: z.number().int().positive().optional() })).query(({ input }) => discoverCatalog(input)),
     similar: publicProcedure.input(z.object({ id: z.number().int().positive(), mediaType: z.enum(["movie", "tv"]), language: z.string().default("en-US") })).query(({ input }) => getSimilarCatalogTitles(input)),
     recommended: publicProcedure.input(z.object({ id: z.number().int().positive(), mediaType: z.enum(["movie", "tv"]), language: z.string().default("en-US") })).query(({ input }) => getRecommendedCatalogTitles(input)),
+    reviews: publicProcedure.input(z.object({ id: z.number().int().positive(), mediaType: z.enum(["movie", "tv"]), language: z.string().default("en-US") })).query(({ input }) => getTmdbReviews(input)),
+  }),
+  ratings: router({
+    omdb: publicProcedure.input(z.object({ title: z.string().trim().min(1).max(500), releaseDate: z.string().max(16).nullable(), mediaType: z.enum(["movie", "tv"]), imdbId: z.string().regex(/^tt\d+$/).nullable().optional() })).query(({ input }) => getOmdbRatings(input)),
   }),
   ai: router({
     research: protectedProcedure.input(z.object({ query: z.string().trim().min(3).max(220), region: z.string().regex(/^[A-Z]{2}$/), language: z.string().min(2).max(20) })).mutation(({ input }) => researchDiscoveryLead(input)),
@@ -141,6 +151,10 @@ export const appRouter = router({
     }),
   }),
   providers: router({ list: publicProcedure.query(() => providerGuides) }),
+  anime: router({
+    search: publicProcedure.input(z.object({ query: z.string().trim().min(2).max(160) })).query(({ input }) => searchAnimeCatalog(input.query)),
+    availability: publicProcedure.input(z.object({ title: z.string().trim().min(1).max(500), englishTitle: z.string().trim().max(500).nullable(), nativeTitle: z.string().trim().max(500).nullable(), region: z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/), language: z.string().trim().min(2).max(16).default("en-US") })).query(({ input }) => getAnimeLegalAvailability(input)),
+  }),
   community: router({
     list: publicProcedure.input(z.object({ region: z.string().regex(/^[A-Z]{2}$/).optional(), kind: communityKind.optional() }).optional()).query(({ input }) => getCommunityPosts(input ?? {})),
     contribute: protectedProcedure.input(communityPostInput).mutation(async ({ ctx, input }) => { await createCommunityPost(ctx.user.id, { ...input, tmdbId: input.tmdbId ?? null, providerName: input.providerName ?? null, reportedLeavingAt: input.reportedLeavingAt ?? null, switchesToProviderName: input.switchesToProviderName ?? null, sourceUrl: input.sourceUrl ?? null }); return { success: true }; }),
@@ -164,6 +178,12 @@ export const appRouter = router({
       setThreadStatus: adminProcedure.input(z.object({ threadId: z.number().int().positive(), status: z.enum(["visible", "hidden", "removed"]) })).mutation(async ({ input }) => { await setCommunityThreadStatus(input.threadId, input.status); return { success: true }; }),
       setReplyStatus: adminProcedure.input(z.object({ replyId: z.number().int().positive(), status: z.enum(["visible", "hidden", "removed"]) })).mutation(async ({ input }) => { await setCommunityThreadReplyStatus(input.replyId, input.status); return { success: true }; }),
     }),
+  }),
+  leavingSoon: router({
+    titleSignals: publicProcedure.input(z.object({ tmdbId: z.number().int().positive(), mediaType: z.enum(["movie", "tv"]), region: z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/) })).query(async ({ input }) => ({ confirmed: await getActiveConfirmedProviderDepartures(input), community: await getCommunityTitleLeavingSoonSignals(input), publicWeb: await getActivePublicLeavingSoonResearch(input) })),
+  }),
+  releaseSignals: router({
+    title: publicProcedure.input(z.object({ tmdbId: z.number().int().positive(), mediaType: z.enum(["movie", "tv"]), region: z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/), language: z.string().trim().min(2).max(16).default("en-US") })).query(({ input }) => getTitleReleaseSignals(input)),
   }),
   viewingSignals: router({
     list: protectedProcedure.query(({ ctx }) => getViewingSignals(ctx.user.id)),
@@ -201,7 +221,7 @@ export const appRouter = router({
   }),
   alerts: router({
     preferences: protectedProcedure.query(({ ctx }) => getAlertPreferences(ctx.user.id)),
-    deliveryStatus: protectedProcedure.query(() => getEmailDeliveryStatus()),
+    deliveryStatus: protectedProcedure.query(() => ({ email: getEmailDeliveryStatus(), browserPush: getBrowserPushDeliveryStatus() })),
     providerDigest: protectedProcedure.query(async ({ ctx }) => {
       const items = (await getAlerts(ctx.user.id)).filter(item => item.type === "availability_changed").slice(0, 20);
       return items.map(item => {
@@ -215,7 +235,10 @@ export const appRouter = router({
         };
       });
     }),
-    updatePreferences: protectedProcedure.input(z.object({ availabilityChangesEnabled: z.boolean(), renewalRemindersEnabled: z.boolean(), pauseRemindersEnabled: z.boolean(), renewalLeadDays: z.number().int().min(1).max(60), inAppEnabled: z.boolean(), emailEnabled: z.boolean().optional().default(false), emailRecommendationEnabled: z.boolean().optional().default(false), emailLeavingSoonEnabled: z.boolean().optional().default(false), emailCommunityEnabled: z.boolean().optional().default(false) })).mutation(({ ctx, input }) => updateAlertPreferences(ctx.user.id, input)),
+    updatePreferences: protectedProcedure.input(z.object({ availabilityChangesEnabled: z.boolean(), renewalRemindersEnabled: z.boolean(), pauseRemindersEnabled: z.boolean(), renewalLeadDays: z.number().int().min(1).max(60), inAppEnabled: z.boolean(), emailEnabled: z.boolean().optional().default(false), emailRecommendationEnabled: z.boolean().optional().default(false), emailLeavingSoonEnabled: z.boolean().optional().default(false), emailCommunityEnabled: z.boolean().optional().default(false), pushEnabled: z.boolean().optional().default(false) })).mutation(({ ctx, input }) => updateAlertPreferences(ctx.user.id, input)),
+    browserPushStatus: protectedProcedure.query(() => getBrowserPushDeliveryStatus()),
+    saveBrowserPushSubscription: protectedProcedure.input(z.object({ endpoint: z.string().url().max(2048), p256dh: z.string().min(16).max(512), auth: z.string().min(8).max(512), userAgent: z.string().max(500).nullable().optional() })).mutation(async ({ ctx, input }) => { const { upsertBrowserPushSubscription } = await import("./db"); await upsertBrowserPushSubscription(ctx.user.id, input); return { success: true }; }),
+    removeBrowserPushSubscription: protectedProcedure.input(z.object({ endpoint: z.string().url().max(2048) })).mutation(async ({ ctx, input }) => { const { removeBrowserPushSubscription } = await import("./db"); await removeBrowserPushSubscription(ctx.user.id, input.endpoint); return { success: true }; }),
     providerSubscriptions: protectedProcedure.query(({ ctx }) => getProviderAlertSubscriptions(ctx.user.id)),
     setProviderSubscription: protectedProcedure.input(z.object({ providerName: z.string().trim().min(1).max(150), region: z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/), enabled: z.boolean() })).mutation(async ({ ctx, input }) => { await setProviderAlertSubscription(ctx.user.id, input); return { success: true }; }),
     list: protectedProcedure.query(async ({ ctx }) => { await syncRenewalAlerts(ctx.user.id); return getAlerts(ctx.user.id); }),

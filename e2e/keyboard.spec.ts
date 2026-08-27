@@ -127,7 +127,7 @@ test("keyboard users can navigate core routes and submit the labelled discovery 
   });
   await page.goto("/");
 
-  const search = page.getByLabel("Search for a movie or series");
+  const search = page.getByLabel("Search for a movie, series, or anime");
   await search.focus();
   await expect(search).toBeFocused();
   await page.keyboard.type("A local title");
@@ -251,7 +251,7 @@ test("intercepted member browser states render grounded AI success, loading, and
   await mockSignedInResearch(page, mode);
   await page.goto("/");
 
-  const search = page.getByLabel("Search for a movie or series");
+  const search = page.getByLabel("Search for a movie, series, or anime");
   await search.fill("Tencet");
   await search.press("Enter");
   await expect(page.getByText("Searching the public web and compiling a direct answer…")).toBeVisible();
@@ -388,4 +388,44 @@ test("intercepted member reports a title review and does not see it after the sy
   state.hidden = true;
   await page.reload();
   await expect(page.getByText("No title-linked community reviews are visible yet.")).toBeVisible();
+});
+
+test("mobile drawer navigation and persistent assistant launcher remain keyboard-accessible", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Open menu" }).click();
+  await expect(page.getByRole("navigation", { name: "Mobile navigation" })).toBeVisible();
+  await page.getByRole("link", { name: "Recommendations" }).click();
+  await expect(page).toHaveURL(/\/recommendations$/);
+  await expect(page.getByRole("link", { name: "Open your Streamwise assistant" })).toBeVisible();
+  await page.getByRole("link", { name: "Open your Streamwise assistant" }).click();
+  await expect(page).toHaveURL(/\/assistant$/);
+  await expect(page.getByRole("heading", { name: "Ask with your eyes open" })).toBeVisible();
+});
+
+test("Discovery shows the provider belt and keeps AniList metadata separate from legal availability", async ({ page }) => {
+  await page.route("**/api/trpc/**", async route => {
+    const procedures = new URL(route.request().url()).pathname.split("/api/trpc/")[1]?.split(",") ?? [];
+    const entries = procedures.map(procedure => {
+      if (procedure === "auth.me") return { result: { data: { json: null } } };
+      if (procedure === "catalog.status") return { result: { data: { json: { configured: false, provider: "TMDb / JustWatch" } } } };
+      if (procedure === "catalog.search") return { result: { data: { json: { configured: false, titles: [], checkedAt: null, correctedQuery: null } } } };
+      if (procedure === "anime.search") return { result: { data: { json: { status: "available", checkedAt: "2026-08-27T00:00:00.000Z", titles: [{ id: 52991, title: "Frieren: Beyond Journey's End", englishTitle: "Frieren: Beyond Journey's End", nativeTitle: "葬送のフリーレン", format: "TV", episodes: 28, genres: ["Adventure", "Drama"], description: "Synthetic anime catalogue result.", coverImage: null, averageScore: 89, status: "FINISHED", startDate: "2023-09-29", siteUrl: "https://anilist.co/anime/154587" }] } } } };
+      if (procedure === "anime.availability") return { result: { data: { json: { status: "no_exact_catalog_match", matchedTitle: null, detail: null } } } };
+      return { result: { data: { json: [] } } };
+    });
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(entries) });
+  });
+  await page.goto("/");
+  await expect(page.getByRole("region", { name: "Major streaming platforms" })).toBeVisible();
+  await expect(page.getByText("JioHotstar").first()).toBeVisible();
+  const search = page.getByLabel("Search for a movie, series, or anime");
+  await search.fill("Frieren");
+  await search.press("Enter");
+  await expect(page.getByRole("region", { name: "Anime catalogue discovery" })).toBeVisible();
+  await expect(page.getByText("Anime catalogue · AniList")).toBeVisible();
+  await expect(page.getByText("Frieren: Beyond Journey's End")).toBeVisible();
+  await expect(page.getByText(/AniList metadata is not a streaming claim/)).toBeVisible();
+  await page.setViewportSize({ width: 375, height: 812 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

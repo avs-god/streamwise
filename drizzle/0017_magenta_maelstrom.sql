@@ -1,0 +1,1 @@
+ALTER TABLE `confirmedProviderDepartures` ADD `sourceKind` enum('change_feed','snapshot') DEFAULT 'snapshot' NOT NULL;

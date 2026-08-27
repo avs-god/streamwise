@@ -20,7 +20,7 @@ export default function Recommendations() {
   const [mediaType, setMediaType] = useState<"movie" | "tv" | "all">("all");
   const [adaptationNoticeOpen, setAdaptationNoticeOpen] = useState(false);
   const [selected, setSelected] = useState<{ id: number; mediaType: "movie" | "tv" } | null>(null);
-  const [region] = useState("IN");
+  const [region] = useState(() => { try { const saved = typeof window === "undefined" ? null : window.localStorage.getItem("streamwise-selected-region"); return saved && /^[A-Z]{2}$/.test(saved) ? saved : "IN"; } catch { return "IN"; } });
   const [language] = useState(() => typeof navigator === "undefined" ? "en-US" : navigator.language || "en-US");
   const recommendation = trpc.catalog.discover.useQuery({ mode, mediaType, region, language, genreId }, { retry: false });
   const postWatch = trpc.viewingSignals.postWatchPicks.useQuery({ language }, { enabled: Boolean(user), retry: false });

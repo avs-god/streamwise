@@ -1,4 +1,5 @@
 import { createAlert, getAlertPreferences, getAlerts, getSubscriptions } from "./db";
+import { sendOptedInBrowserPush } from "./browserPush";
 
 export type RenewalRecord = {
   id: number;
@@ -36,7 +37,9 @@ export async function syncRenewalAlerts(userId: number, now = new Date()) {
     const dedupeKey = `renewal:${subscription.id}:${subscription.renewalDate!.toISOString()}`;
     if (existingKeys.has(dedupeKey)) continue;
     const timing = subscription.daysUntilRenewal === 0 ? "renews today" : `renews in ${subscription.daysUntilRenewal} day${subscription.daysUntilRenewal === 1 ? "" : "s"}`;
-    await createAlert({ userId, type: "renewal_due", title: `Renewal to review: ${subscription.providerName}`, body: `${subscription.planName} ${timing}, based on the date in your wallet. Confirm the provider’s current terms before changing the plan.`, payloadJson: JSON.stringify({ dedupeKey, subscriptionId: subscription.id, renewalDate: subscription.renewalDate }) });
+    const title = `Renewal to review: ${subscription.providerName}`; const body = `${subscription.planName} ${timing}, based on the date in your wallet. Confirm the provider’s current terms before changing the plan.`;
+    await createAlert({ userId, type: "renewal_due", title, body, payloadJson: JSON.stringify({ dedupeKey, subscriptionId: subscription.id, renewalDate: subscription.renewalDate }) });
+    await sendOptedInBrowserPush(userId, { title, body, url: "/updates" });
     created += 1;
   }
   if (preferences.pauseRemindersEnabled) {
@@ -44,7 +47,9 @@ export async function syncRenewalAlerts(userId: number, now = new Date()) {
     for (const subscription of pauseCandidates) {
       const dedupeKey = `pause:${subscription.id}:${subscription.pauseUntil!.toISOString()}`;
       if (existingKeys.has(dedupeKey)) continue;
-      await createAlert({ userId, type: "pause_review", title: `Pause review due: ${subscription.providerName}`, body: `${subscription.planName} has reached the review date you entered when pausing it. Review the provider’s official terms before resuming, cancelling, or changing the plan.`, payloadJson: JSON.stringify({ dedupeKey, subscriptionId: subscription.id, pauseUntil: subscription.pauseUntil }) });
+      const title = `Pause review due: ${subscription.providerName}`; const body = `${subscription.planName} has reached the review date you entered when pausing it. Review the provider’s official terms before resuming, cancelling, or changing the plan.`;
+      await createAlert({ userId, type: "pause_review", title, body, payloadJson: JSON.stringify({ dedupeKey, subscriptionId: subscription.id, pauseUntil: subscription.pauseUntil }) });
+      await sendOptedInBrowserPush(userId, { title, body, url: "/updates" });
       created += 1;
     }
   }

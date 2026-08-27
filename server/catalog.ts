@@ -2,6 +2,8 @@ import { invokeLLM, listLLMModels } from "./_core/llm";
 
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 let catalogTokenTestOverride: string | null = null;
+let streamingAvailabilityKeyTestOverride: string | undefined;
+let streamingAvailabilityRateLimitedUntil = 0;
 
 export type OfferType = "stream" | "ads" | "free" | "rent" | "buy";
 
@@ -24,6 +26,8 @@ export type CatalogTitle = {
   overview: string | null;
   posterPath: string | null;
   releaseDate: string | null;
+  tmdbVoteAverage?: number | null;
+  tmdbVoteCount?: number | null;
 };
 
 export type CatalogDetail = CatalogTitle & {
@@ -38,7 +42,12 @@ export type CatalogDetail = CatalogTitle & {
   streamingAvailabilityStatus: "available" | "unavailable" | "not_configured";
   streamingAvailabilityCheckedAt: string | null;
   checkedAt: string;
+  tmdbVoteAverage: number | null;
+  tmdbVoteCount: number | null;
+  imdbId: string | null;
 };
+
+export type TmdbReview = { author: string; content: string; url: string | null; createdAt: string | null; rating: number | null };
 
 function getAccessToken() {
   return catalogTokenTestOverride ?? process.env.TMDB_ACCESS_TOKEN?.trim() ?? "";
@@ -80,7 +89,77 @@ function cleanRegion(region: string) {
 }
 
 function getWatchmodeKey() { return process.env.WATCHMODE_API_KEY?.trim() ?? ""; }
-function getStreamingAvailabilityKey() { return process.env.RAPIDAPI_STREAMING_AVAILABILITY_KEY?.trim() ?? ""; }
+function getStreamingAvailabilityKey() { return streamingAvailabilityKeyTestOverride !== undefined ? streamingAvailabilityKeyTestOverride : (process.env.VITEST ? "" : process.env.RAPIDAPI_STREAMING_AVAILABILITY_KEY?.trim() ?? ""); }
+export function setStreamingAvailabilityKeyForTests(key: string | undefined) { streamingAvailabilityKeyTestOverride = key; streamingAvailabilityRateLimitedUntil = 0; }
+
+export type StreamingAvailabilityExpiry = { tmdbId: number; mediaType: "movie" | "tv"; title: string; providerName: string; providerType: string; expiresAt: Date; sourceUrl: string | null };
+export type StreamingAvailabilityUpcoming = { tmdbId: number; mediaType: "movie" | "tv"; title: string; providerName: string; providerType: string; announcedFor: Date; sourceUrl: string | null };
+
+function parseStreamingAvailabilityExpiry(payload: unknown): StreamingAvailabilityExpiry[] {
+  const data = payload as { changes?: Array<{ showId?: string | number; showType?: string; tmdbId?: string; service?: { id?: string; name?: string } | string; streamingOptionType?: string; timestamp?: number; link?: string | null }>; shows?: Array<{ id?: string | number; showId?: string | number; tmdbId?: string; title?: string; showType?: string }> | Record<string, { id?: string | number; showId?: string | number; tmdbId?: string; title?: string; showType?: string }> };
+  const shows = Array.isArray(data.shows) ? data.shows : Object.values(data.shows ?? {});
+  const showById = new Map(shows.map(show => [String(show.id ?? show.showId ?? ""), show]));
+  return (data.changes ?? []).flatMap(change => {
+    const show = showById.get(String(change.showId ?? ""));
+    const tmdbRef = show?.tmdbId ?? change.tmdbId;
+    const match = typeof tmdbRef === "string" ? /^(movie|tv)\/(\d+)$/.exec(tmdbRef) : null;
+    const mediaType = (show?.showType ?? change.showType) === "movie" ? "movie" : (show?.showType ?? change.showType) === "series" || (show?.showType ?? change.showType) === "tv" ? "tv" : null;
+    const providerName = typeof change.service === "string" ? change.service : change.service?.name ?? change.service?.id;
+    if (!match || !mediaType || !providerName || !change.timestamp || !Number.isFinite(change.timestamp)) return [];
+    return [{ tmdbId: Number(match[2]), mediaType: match[1] === "movie" ? "movie" : "tv", title: show?.title?.slice(0, 500) ?? `TMDb ${match[2]}`, providerName: providerName.slice(0, 150), providerType: change.streamingOptionType?.slice(0, 24) ?? "subscription", expiresAt: new Date(change.timestamp * 1000), sourceUrl: change.link ?? null }];
+  });
+}
+
+/** Fetches only the provider’s documented expiring change window; caller persists matching records and handles rate limits. */
+export async function getStreamingAvailabilityExpiryChanges(region: string): Promise<{ status: "available" | "not_configured" | "rate_limited" | "unavailable"; entries: StreamingAvailabilityExpiry[]; checkedAt: Date | null; retryAfterMs: number | null }> {
+  const key = getStreamingAvailabilityKey();
+  if (!key) return { status: "not_configured", entries: [], checkedAt: null, retryAfterMs: null };
+  const now = Date.now();
+  if (streamingAvailabilityRateLimitedUntil > now) return { status: "rate_limited", entries: [], checkedAt: new Date(now), retryAfterMs: streamingAvailabilityRateLimitedUntil - now };
+  const from = Math.floor(now / 1000); const to = Math.floor((now + 31 * 24 * 60 * 60 * 1000) / 1000);
+  const query = new URLSearchParams({ country: cleanRegion(region).toLowerCase(), change_type: "expiring", item_type: "show", from: String(from), to: String(to), include_unknown_dates: "false", order_direction: "asc", output_language: "en" });
+  try {
+    const response = await fetch(`https://streaming-availability.p.rapidapi.com/changes?${query.toString()}`, { headers: { "x-rapidapi-key": key, "x-rapidapi-host": "streaming-availability.p.rapidapi.com" } });
+    const checkedAt = new Date();
+    if (response.status === 429) {
+      const retrySeconds = Math.max(60, Math.min(Number(response.headers.get("retry-after")) || 1800, 24 * 60 * 60));
+      streamingAvailabilityRateLimitedUntil = now + retrySeconds * 1000;
+      return { status: "rate_limited", entries: [], checkedAt, retryAfterMs: retrySeconds * 1000 };
+    }
+    if (!response.ok) return { status: "unavailable", entries: [], checkedAt, retryAfterMs: null };
+    return { status: "available", entries: parseStreamingAvailabilityExpiry(await response.json()), checkedAt, retryAfterMs: null };
+  } catch { return { status: "unavailable", entries: [], checkedAt: new Date(), retryAfterMs: null }; }
+}
+
+/** Fetches only documented future `upcoming` change records with a known exact date. It never implies a current legal offer. */
+export async function getStreamingAvailabilityUpcomingChanges(region: string): Promise<{ status: "available" | "not_configured" | "rate_limited" | "unavailable"; entries: StreamingAvailabilityUpcoming[]; checkedAt: Date | null; retryAfterMs: number | null }> {
+  const key = getStreamingAvailabilityKey();
+  if (!key) return { status: "not_configured", entries: [], checkedAt: null, retryAfterMs: null };
+  const now = Date.now();
+  if (streamingAvailabilityRateLimitedUntil > now) return { status: "rate_limited", entries: [], checkedAt: new Date(now), retryAfterMs: streamingAvailabilityRateLimitedUntil - now };
+  const from = Math.floor(now / 1000); const to = Math.floor((now + 31 * 24 * 60 * 60 * 1000) / 1000);
+  const query = new URLSearchParams({ country: cleanRegion(region).toLowerCase(), change_type: "upcoming", item_type: "show", from: String(from), to: String(to), include_unknown_dates: "false", order_direction: "asc", output_language: "en" });
+  try {
+    const response = await fetch(`https://streaming-availability.p.rapidapi.com/changes?${query.toString()}`, { headers: { "x-rapidapi-key": key, "x-rapidapi-host": "streaming-availability.p.rapidapi.com" } });
+    const checkedAt = new Date();
+    if (response.status === 429) {
+      const retrySeconds = Math.max(60, Math.min(Number(response.headers.get("retry-after")) || 1800, 24 * 60 * 60));
+      streamingAvailabilityRateLimitedUntil = now + retrySeconds * 1000;
+      return { status: "rate_limited", entries: [], checkedAt, retryAfterMs: retrySeconds * 1000 };
+    }
+    if (!response.ok) return { status: "unavailable", entries: [], checkedAt, retryAfterMs: null };
+    const payload = await response.json() as { changes?: Array<{ showId?: string | number; showType?: string; tmdbId?: string; service?: { id?: string; name?: string } | string; streamingOptionType?: string; timestamp?: number; link?: string | null }>; shows?: Array<{ id?: string | number; showId?: string | number; tmdbId?: string; title?: string; showType?: string }> | Record<string, { id?: string | number; showId?: string | number; tmdbId?: string; title?: string; showType?: string }> };
+    const shows = Array.isArray(payload.shows) ? payload.shows : Object.values(payload.shows ?? {}); const showById = new Map(shows.map(show => [String(show.id ?? show.showId ?? ""), show]));
+    const entries = (payload.changes ?? []).flatMap(change => {
+      const show = showById.get(String(change.showId ?? "")); const tmdbRef = show?.tmdbId ?? change.tmdbId; const match = typeof tmdbRef === "string" ? /^(movie|tv)\/(\d+)$/.exec(tmdbRef) : null;
+      const mediaType = (show?.showType ?? change.showType) === "movie" ? "movie" : (show?.showType ?? change.showType) === "series" || (show?.showType ?? change.showType) === "tv" ? "tv" : null;
+      const providerName = typeof change.service === "string" ? change.service : change.service?.name ?? change.service?.id;
+      if (!match || !mediaType || !providerName || !change.timestamp || !Number.isFinite(change.timestamp)) return [];
+      return [{ tmdbId: Number(match[2]), mediaType: (match[1] === "movie" ? "movie" : "tv") as "movie" | "tv", title: show?.title?.slice(0, 500) ?? `TMDb ${match[2]}`, providerName: providerName.slice(0, 150), providerType: change.streamingOptionType?.slice(0, 24) ?? "subscription", announcedFor: new Date(change.timestamp * 1000), sourceUrl: change.link ?? null }];
+    });
+    return { status: "available", entries, checkedAt, retryAfterMs: null };
+  } catch { return { status: "unavailable", entries: [], checkedAt: new Date(), retryAfterMs: null }; }
+}
 
 async function getWatchmodeOffers(input: { tmdbId: number; mediaType: "movie" | "tv"; region: string }) {
   const apiKey = getWatchmodeKey();
@@ -213,6 +292,9 @@ export async function getCatalogDetail(input: {
     runtime?: number | null;
     episode_run_time?: number[];
     genres?: { name: string }[];
+    vote_average?: number;
+    vote_count?: number;
+    external_ids?: { imdb_id?: string | null };
     "watch/providers"?: {
       results?: Record<
         string,
@@ -230,7 +312,7 @@ export async function getCatalogDetail(input: {
   const watchmodePromise = getWatchmodeOffers({ tmdbId: input.id, mediaType: input.mediaType, region: input.region });
   const streamingAvailabilityPromise = getStreamingAvailabilityOffers({ tmdbId: input.id, mediaType: input.mediaType, region: input.region });
   const data = await tmdbFetch<DetailResponse>(
-    `/${input.mediaType}/${input.id}?append_to_response=watch%2Fproviders&language=${encodeURIComponent(cleanLanguage(input.language))}`,
+    `/${input.mediaType}/${input.id}?append_to_response=watch%2Fproviders%2Cexternal_ids&language=${encodeURIComponent(cleanLanguage(input.language))}`,
   );
   const regionalOffers = data["watch/providers"]?.results?.[cleanRegion(input.region)];
   const offerGroups: Array<[OfferType, ProviderEntry[] | undefined]> = [
@@ -273,8 +355,39 @@ export async function getCatalogDetail(input: {
       streamingAvailabilityStatus: streamingAvailability.status,
       streamingAvailabilityCheckedAt: streamingAvailability.checkedAt,
       checkedAt: new Date().toISOString(),
+      tmdbVoteAverage: typeof data.vote_average === "number" ? data.vote_average : null,
+      tmdbVoteCount: typeof data.vote_count === "number" ? data.vote_count : null,
+      imdbId: data.external_ids?.imdb_id ?? null,
     },
   };
+}
+
+/** TMDb-supplied user reviews, deliberately kept distinct from Streamwise member reviews and external critic links. */
+export async function getTmdbReviews(input: { id: number; mediaType: "movie" | "tv"; language: string }): Promise<{ configured: boolean; reviews: TmdbReview[]; checkedAt: string | null }> {
+  if (!isCatalogConfigured()) return { configured: false, reviews: [], checkedAt: null };
+  type Response = { results?: Array<{ author?: string; content?: string; url?: string | null; created_at?: string | null; author_details?: { rating?: number | null } }> };
+  try {
+    const data = await tmdbFetch<Response>(`/${input.mediaType}/${input.id}/reviews?language=${encodeURIComponent(cleanLanguage(input.language))}&page=1`);
+    const reviews = (data.results ?? []).flatMap(review => review.author && review.content ? [{ author: review.author.slice(0, 120), content: review.content.slice(0, 1600), url: review.url ?? null, createdAt: review.created_at ?? null, rating: typeof review.author_details?.rating === "number" ? review.author_details.rating : null }] : []).slice(0, 3);
+    return { configured: true, reviews, checkedAt: new Date().toISOString() };
+  } catch { return { configured: true, reviews: [], checkedAt: new Date().toISOString() }; }
+}
+
+type TheatricalStatus = { configured: boolean; status: "listed" | "not_listed" | "not_applicable" | "unavailable" | "not_configured"; sourceUrl: string | null; checkedAt: string | null };
+const nowPlayingCache = new Map<string, { expiresAt: number; resultIds: Set<number>; checkedAt: string }>();
+
+/** Checks TMDb's documented region-scoped current-theatrical list. A past release date alone never produces this signal. */
+export async function getCurrentTheatricalStatus(input: { id: number; mediaType: "movie" | "tv"; region: string; language: string }): Promise<TheatricalStatus> {
+  if (input.mediaType !== "movie") return { configured: isCatalogConfigured(), status: "not_applicable", sourceUrl: null, checkedAt: null };
+  if (!isCatalogConfigured()) return { configured: false, status: "not_configured", sourceUrl: null, checkedAt: null };
+  const key = `${cleanRegion(input.region)}:${cleanLanguage(input.language)}`; const cached = nowPlayingCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return { configured: true, status: cached.resultIds.has(input.id) ? "listed" : "not_listed", sourceUrl: `https://www.themoviedb.org/movie/${input.id}`, checkedAt: cached.checkedAt };
+  try {
+    const response = await tmdbFetch<{ results?: Array<{ id?: number }> }>(`/movie/now_playing?language=${encodeURIComponent(cleanLanguage(input.language))}&region=${encodeURIComponent(cleanRegion(input.region))}&page=1`);
+    const checkedAt = new Date().toISOString(); const resultIds = new Set((response.results ?? []).flatMap(result => typeof result.id === "number" ? [result.id] : []));
+    nowPlayingCache.set(key, { expiresAt: Date.now() + 15 * 60_000, resultIds, checkedAt });
+    return { configured: true, status: resultIds.has(input.id) ? "listed" : "not_listed", sourceUrl: `https://www.themoviedb.org/movie/${input.id}`, checkedAt };
+  } catch { return { configured: true, status: "unavailable", sourceUrl: null, checkedAt: new Date().toISOString() }; }
 }
 
 export type DiscoveryMode = "popular" | "top_rated" | "genre";

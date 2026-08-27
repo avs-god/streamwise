@@ -92,6 +92,7 @@ export const alertPreferences = mysqlTable("alertPreferences", {
   emailRecommendationEnabled: boolean("emailRecommendationEnabled").default(false).notNull(),
   emailLeavingSoonEnabled: boolean("emailLeavingSoonEnabled").default(false).notNull(),
   emailCommunityEnabled: boolean("emailCommunityEnabled").default(false).notNull(),
+  pushEnabled: boolean("pushEnabled").default(false).notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
@@ -257,6 +258,87 @@ export const communityThreadReports = mysqlTable(
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
   table => [uniqueIndex("thread_report_reporter_target_unique").on(table.reporterUserId, table.threadId, table.replyId)],
+);
+
+/** An observed removal from two legal provider snapshots. It is not an announced departure date or a community/web claim. */
+export const confirmedProviderDepartures = mysqlTable(
+  "confirmedProviderDepartures",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    tmdbId: int("tmdbId").notNull(),
+    mediaType: mysqlEnum("mediaType", ["movie", "tv"]).notNull(),
+    region: varchar("region", { length: 2 }).notNull(),
+    title: varchar("title", { length: 500 }).notNull(),
+    providerName: varchar("providerName", { length: 150 }).notNull(),
+    providerType: varchar("providerType", { length: 24 }).notNull(),
+    sourceKind: mysqlEnum("sourceKind", ["change_feed", "snapshot"]).default("snapshot").notNull(),
+    sourceUrl: varchar("sourceUrl", { length: 1024 }),
+    firstObservedAt: timestamp("firstObservedAt").notNull(),
+    lastObservedAt: timestamp("lastObservedAt").notNull(),
+    expiresAt: timestamp("expiresAt").notNull(),
+    status: mysqlEnum("status", ["active", "resolved"]).default("active").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [uniqueIndex("confirmed_departure_title_provider_region_unique").on(table.tmdbId, table.mediaType, table.region, table.providerName), index("confirmed_departure_active_lookup_idx").on(table.tmdbId, table.mediaType, table.region, table.status, table.expiresAt)],
+);
+
+/** Bounded public-web context for an explicitly monitored title. Never used as legal-offer, departure, or alert evidence. */
+export const publicLeavingSoonResearch = mysqlTable(
+  "publicLeavingSoonResearch",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    tmdbId: int("tmdbId").notNull(),
+    mediaType: mysqlEnum("mediaType", ["movie", "tv"]).notNull(),
+    region: varchar("region", { length: 2 }).notNull(),
+    directResponse: text("directResponse").notNull(),
+    sourcesJson: text("sourcesJson").notNull(),
+    communitySourcesJson: text("communitySourcesJson").notNull(),
+    status: mysqlEnum("status", ["lead", "insufficient", "unavailable"]).notNull(),
+    searchedAt: timestamp("searchedAt").notNull(),
+    expiresAt: timestamp("expiresAt").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [uniqueIndex("public_leaving_soon_title_region_unique").on(table.tmdbId, table.mediaType, table.region), index("public_leaving_soon_active_lookup_idx").on(table.tmdbId, table.mediaType, table.region, table.expiresAt)],
+);
+
+/** Exact future streaming dates supplied by a provider change feed. This is an announcement signal, never a current offer. */
+export const announcedStreamingReleases = mysqlTable(
+  "announcedStreamingReleases",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    tmdbId: int("tmdbId").notNull(),
+    mediaType: mysqlEnum("mediaType", ["movie", "tv"]).notNull(),
+    region: varchar("region", { length: 2 }).notNull(),
+    title: varchar("title", { length: 500 }).notNull(),
+    providerName: varchar("providerName", { length: 150 }).notNull(),
+    providerType: varchar("providerType", { length: 24 }).notNull(),
+    sourceKind: mysqlEnum("sourceKind", ["provider_change_feed"]).default("provider_change_feed").notNull(),
+    sourceUrl: varchar("sourceUrl", { length: 1024 }),
+    announcedFor: timestamp("announcedFor").notNull(),
+    retrievedAt: timestamp("retrievedAt").notNull(),
+    expiresAt: timestamp("expiresAt").notNull(),
+    status: mysqlEnum("status", ["active", "resolved"]).default("active").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [uniqueIndex("announced_streaming_title_provider_region_unique").on(table.tmdbId, table.mediaType, table.region, table.providerName), index("announced_streaming_active_lookup_idx").on(table.tmdbId, table.mediaType, table.region, table.status, table.announcedFor)],
+);
+
+export const browserPushSubscriptions = mysqlTable(
+  "browserPushSubscriptions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    endpoint: varchar("endpoint", { length: 2048 }).notNull(),
+    p256dh: varchar("p256dh", { length: 512 }).notNull(),
+    auth: varchar("auth", { length: 512 }).notNull(),
+    userAgent: varchar("userAgent", { length: 500 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [uniqueIndex("browser_push_endpoint_unique").on(table.endpoint), index("browser_push_user_idx").on(table.userId)],
 );
 
 export const scheduledJobs = mysqlTable("scheduledJobs", {
