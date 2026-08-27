@@ -1,0 +1,39 @@
+import React, { type SVGProps } from "react";
+
+type StreamwiseLogoProps = SVGProps<SVGSVGElement> & {
+  size?: number;
+};
+
+/**
+ * Streamwise's owl mark pairs deliberate observation with a compact playback
+ * control where an owl's beak would sit.
+ */
+export default function StreamwiseLogo({ size = 36, className, ...props }: StreamwiseLogoProps) {
+  return (
+    <svg
+      viewBox="0 0 64 64"
+      width={size}
+      height={size}
+      role="img"
+      aria-label="Streamwise owl logo"
+      className={className}
+      {...props}
+    >
+      <rect x="3" y="3" width="58" height="58" rx="19" fill="#1e4a3a" />
+      <path
+        d="M15 45V25l8-7 9 4 9-4 8 7v20c-4.2 4.1-10 6.2-17 6.2S19.2 49.1 15 45Z"
+        fill="#fbf8ee"
+      />
+      <path d="m17 26 6-8 3 10M47 26l-6-8-3 10" fill="#e8dfc3" />
+      <circle cx="23.5" cy="33.5" r="7.5" fill="#e8dfc3" />
+      <circle cx="40.5" cy="33.5" r="7.5" fill="#e8dfc3" />
+      <circle cx="23.5" cy="33.5" r="4.2" fill="#1e4a3a" />
+      <circle cx="40.5" cy="33.5" r="4.2" fill="#1e4a3a" />
+      <circle cx="22.1" cy="32.1" r="1.25" fill="#fbf8ee" />
+      <circle cx="39.1" cy="32.1" r="1.25" fill="#fbf8ee" />
+      <path d="M26.5 42.2c0-2 1.6-3.5 3.5-3.5h4c2 0 3.5 1.6 3.5 3.5v4.1c0 1.9-1.6 3.5-3.5 3.5h-4c-1.9 0-3.5-1.6-3.5-3.5v-4.1Z" fill="#b78738" />
+      <path d="m30.4 41.8 3.2 2.45-3.2 2.45v-4.9Z" fill="#1e4a3a" />
+      <path d="M35 42.1v4.3M36.7 42.1v4.3" stroke="#1e4a3a" strokeWidth="1.15" strokeLinecap="round" />
+    </svg>
+  );
+}

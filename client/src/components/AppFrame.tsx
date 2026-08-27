@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ArrowUpRight, BellRing, Bookmark, Bot, Compass, LayoutList, LogOut, MessagesSquare, Settings2, ShieldCheck, Star, TimerReset, WalletCards } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import StreamwiseLogo from "./StreamwiseLogo";
 
 const nav = [
   { href: "/", label: "Discover", icon: Compass },
@@ -25,8 +26,8 @@ export default function AppFrame({ children }: { children: React.ReactNode }) {
     <div className="page-shell paper-grain">
       <header className="sticky top-0 z-30 border-b border-[#d9d3c4]/80 bg-[#faf8f1]/90 backdrop-blur-xl">
         <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
-          <Link href="/" className="flex shrink-0 items-center gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md">
-            <span className="grid size-8 place-items-center rounded-full bg-[#1e4a3a] text-sm font-bold text-[#fbf8ee] shadow-[0_5px_16px_rgba(18,59,46,.20)]">S</span>
+          <Link href="/" className="flex shrink-0 items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <StreamwiseLogo size={34} aria-hidden="true" className="shrink-0 drop-shadow-[0_5px_12px_rgba(18,59,46,.18)]" />
             <span className="serif text-[1.4rem] font-semibold tracking-[-0.04em] text-[#193d31]">Streamwise</span>
           </Link>
 
