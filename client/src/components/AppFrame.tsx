@@ -5,10 +5,11 @@ import { startLogin } from "@/const";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { trpc } from "@/lib/trpc";
 import { ArrowUpRight, BellRing, Bookmark, Bot, Compass, LayoutList, LogOut, Menu, MessagesSquare, Settings2, ShieldCheck, Star, TimerReset, WalletCards } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import StreamwiseLogo from "./StreamwiseLogo";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const nav = [
   { href: "/", label: "Discover", icon: Compass },
@@ -26,9 +27,15 @@ export default function AppFrame({ children }: { children: React.ReactNode }) {
   const { user, loading, logout } = useAuth();
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const profile = trpc.tasteProfile.get.useQuery(undefined, { enabled: Boolean(user), retry: false });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("streamwise-user-reduced-motion", Boolean(profile.data?.reducedMotion));
+    return () => document.documentElement.classList.remove("streamwise-user-reduced-motion");
+  }, [profile.data?.reducedMotion]);
 
   return (
-    <div className="page-shell paper-grain">
+    <div className={cn("page-shell paper-grain", profile.data?.interfaceDensity === "compact" && "streamwise-compact-density")}>
       <header className="sticky top-0 z-30 border-b border-[#d9d3c4]/80 bg-[#faf8f1]/90 backdrop-blur-xl">
         <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
           <Link href="/" className="flex shrink-0 items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -47,7 +54,7 @@ export default function AppFrame({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-2">
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild><Button type="button" variant="outline" size="icon" aria-label="Open menu" className="border-[#d9d3c4] bg-white/70 text-[#285041] md:hidden"><Menu className="size-5" /></Button></SheetTrigger>
-              <SheetContent side="left" className="flex w-[min(22rem,88vw)] flex-col border-[#d9d3c4] bg-[#faf8f1] p-0"><SheetHeader className="border-b border-[#d9d3c4] px-6 pb-5 pt-6 text-left"><SheetTitle className="serif text-3xl text-[#1e4a3a]">Streamwise menu</SheetTitle><SheetDescription>Move between discovery, your private planning tools, and community context.</SheetDescription></SheetHeader><nav aria-label="Mobile navigation" className="grid gap-1 p-4">{nav.map(item => { const Icon = item.icon; return <Link key={item.href} href={item.href} onClick={() => setMobileMenuOpen(false)} className={cn("flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", location === item.href ? "bg-[#e7dfc8] text-[#1e4a3a]" : "text-[#48665a] hover:bg-[#eee9dc]")}><Icon className="size-4" />{item.label}</Link>; })}{user?.role === "admin" ? <Link href="/moderation" onClick={() => setMobileMenuOpen(false)} className={cn("flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", location === "/moderation" ? "bg-[#e7dfc8] text-[#1e4a3a]" : "text-[#48665a] hover:bg-[#eee9dc]")}><ShieldCheck className="size-4" />Moderation</Link> : null}</nav><div className="mt-auto space-y-3 border-t border-[#d9d3c4] p-4"><PwaInstallButton /><Link href="/assistant" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-center gap-2 rounded-xl bg-[#1e4a3a] px-4 py-3 text-sm font-semibold text-[#fbf8ee]"><Bot className="size-4" />Open assistant</Link></div></SheetContent>
+              <SheetContent side="left" className="flex w-[min(22rem,88vw)] flex-col border-[#d9d3c4] bg-[#faf8f1] p-0"><SheetHeader className="border-b border-[#d9d3c4] px-6 pb-5 pt-6 text-left"><SheetTitle className="serif text-3xl text-[#1e4a3a]">Streamwise menu</SheetTitle><SheetDescription>Move between discovery, your private planning tools, and community context.</SheetDescription></SheetHeader><nav aria-label="Mobile navigation" className="grid gap-1 p-4">{nav.map(item => { const Icon = item.icon; return <Link key={item.href} href={item.href} onClick={() => setMobileMenuOpen(false)} className={cn("flex min-h-12 items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", location === item.href ? "bg-[#e7dfc8] text-[#1e4a3a]" : "text-[#48665a] hover:bg-[#eee9dc]")}><Icon className="size-4" />{item.label}</Link>; })}<Link href="/settings" onClick={() => setMobileMenuOpen(false)} className={cn("flex min-h-12 items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", location === "/settings" ? "bg-[#e7dfc8] text-[#1e4a3a]" : "text-[#48665a] hover:bg-[#eee9dc]")}><Settings2 className="size-4" />Settings</Link>{user?.role === "admin" ? <Link href="/moderation" onClick={() => setMobileMenuOpen(false)} className={cn("flex min-h-12 items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", location === "/moderation" ? "bg-[#e7dfc8] text-[#1e4a3a]" : "text-[#48665a] hover:bg-[#eee9dc]")}><ShieldCheck className="size-4" />Moderation</Link> : null}</nav><div className="mt-auto space-y-3 border-t border-[#d9d3c4] p-4"><PwaInstallButton /><Link href="/assistant" onClick={() => setMobileMenuOpen(false)} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#1e4a3a] px-4 py-3 text-sm font-semibold text-[#fbf8ee]"><Bot className="size-4" />Open assistant</Link></div></SheetContent>
             </Sheet>
             {!loading && user ? (
               <div className="flex items-center gap-1.5 rounded-full border border-[#d9d3c4] bg-white/70 py-1 pl-1 pr-2">

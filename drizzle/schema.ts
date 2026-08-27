@@ -61,6 +61,9 @@ export const tasteProfiles = mysqlTable("tasteProfiles", {
   maxRuntimeMinutes: int("maxRuntimeMinutes"),
   includeMovies: boolean("includeMovies").default(true).notNull(),
   includeSeries: boolean("includeSeries").default(true).notNull(),
+  defaultRegion: varchar("defaultRegion", { length: 2 }).default("IN").notNull(),
+  interfaceDensity: mysqlEnum("interfaceDensity", ["comfortable", "compact"]).default("comfortable").notNull(),
+  reducedMotion: boolean("reducedMotion").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

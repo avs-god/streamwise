@@ -44,7 +44,7 @@ export const providerGuides: ProviderGuide[] = [
   {
     slug: "youtube",
     name: "YouTube",
-    aliases: ["youtube", "youtube premium"],
+    aliases: ["youtube", "youtube premium", "youtube movies", "youtube rentals", "google tv", "google play movies", "google play"],
     supportUrl: "https://support.google.com/youtube/",
     description:
       "Rental, purchase, and subscription offers are distinct; verify the exact offer on YouTube before completing a transaction.",

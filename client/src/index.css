@@ -84,3 +84,5 @@ button:active { transform: scale(0.98); }
 .provider-ribbon-viewport { overflow-x: auto; scrollbar-width: none; }
 .provider-ribbon-viewport::-webkit-scrollbar { display: none; }
 .provider-ribbon-track { display: flex; width: max-content; gap: 0.65rem; padding: 0 1rem; }
+.streamwise-compact-density .streamwise-offer-preview { margin-top: 0.55rem; padding: 0.6rem; }
+.streamwise-user-reduced-motion, .streamwise-user-reduced-motion * { scroll-behavior: auto !important; animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }

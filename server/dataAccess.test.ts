@@ -148,9 +148,9 @@ describe("private profile data access", () => {
   it("reads and writes optional taste profiles under the authenticated member only", async () => {
     const caller = appRouter.createCaller(contextFor(19));
     const profile = await caller.tasteProfile.get();
-    await caller.tasteProfile.save({ favoriteGenreIds: [878], preferredLanguages: ["hi"], maxRuntimeMinutes: 120, includeMovies: true, includeSeries: true });
+    await caller.tasteProfile.save({ favoriteGenreIds: [878], preferredLanguages: ["hi"], maxRuntimeMinutes: 120, includeMovies: true, includeSeries: true, defaultRegion: "IN", interfaceDensity: "compact", reducedMotion: true });
     expect(mockedDb.getTasteProfile).toHaveBeenCalledWith(19);
-    expect(mockedDb.upsertTasteProfile).toHaveBeenCalledWith(19, { favoriteGenresJson: "[878]", preferredLanguagesJson: "[\"hi\"]", maxRuntimeMinutes: 120, includeMovies: true, includeSeries: true });
+    expect(mockedDb.upsertTasteProfile).toHaveBeenCalledWith(19, { favoriteGenresJson: "[878]", preferredLanguagesJson: "[\"hi\"]", maxRuntimeMinutes: 120, includeMovies: true, includeSeries: true, defaultRegion: "IN", interfaceDensity: "compact", reducedMotion: true });
     expect(profile).toMatchObject({ userId: 19, maxRuntimeMinutes: 120 });
   });
 

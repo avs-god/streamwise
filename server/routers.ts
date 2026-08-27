@@ -110,10 +110,10 @@ export const appRouter = router({
   }),
   ai: router({
     research: protectedProcedure.input(z.object({ query: z.string().trim().min(3).max(220), region: z.string().regex(/^[A-Z]{2}$/), language: z.string().min(2).max(20) })).mutation(({ input }) => researchDiscoveryLead(input)),
-    recommend: publicProcedure.input(z.object({ prompt: z.string().trim().min(3).max(500), conversationContext: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().trim().min(1).max(1600) })).max(6).optional(), region: z.string().regex(/^[A-Z]{2}$/).default("IN"), language: z.string().min(2).max(20).default("en-US"), preferredOriginalLanguage: z.string().regex(/^[a-z]{2}$/).nullable().optional(), maxRuntimeMinutes: z.number().int().min(30).max(360).nullable().optional() })).mutation(async ({ ctx, input }) => {
+    recommend: publicProcedure.input(z.object({ prompt: z.string().trim().min(3).max(500), conversationContext: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().trim().min(1).max(1600) })).max(6).optional(), region: z.string().regex(/^[A-Z]{2}$/).default("IN"), language: z.string().min(2).max(20).default("en-US"), preferredOriginalLanguage: z.string().regex(/^[a-z]{2}$/).nullable().optional(), maxRuntimeMinutes: z.number().int().min(30).max(360).nullable().optional(), preferredMediaType: z.enum(["movie", "tv", "all"]).optional() })).mutation(async ({ ctx, input }) => {
       const contextualPrompt = input.conversationContext?.length ? `${input.conversationContext.map(message => `${message.role}: ${message.content}`).join("\n")}\nuser: ${input.prompt}` : input.prompt;
       const interpretation = await interpretRecommendationPrompt(contextualPrompt);
-      const resolvedIntent = { ...interpretation, originalLanguage: input.preferredOriginalLanguage ?? interpretation.originalLanguage, maxRuntimeMinutes: input.maxRuntimeMinutes ?? interpretation.maxRuntimeMinutes };
+      const resolvedIntent = { ...interpretation, mediaType: input.preferredMediaType ?? interpretation.mediaType, originalLanguage: input.preferredOriginalLanguage ?? interpretation.originalLanguage, maxRuntimeMinutes: input.maxRuntimeMinutes ?? interpretation.maxRuntimeMinutes };
       const catalog = await recommendCatalogFromIntent(resolvedIntent, input.language);
       const topPicks = catalog.titles.slice(0, 3).map(title => ({ id: title.id, title: title.title, mediaType: title.mediaType, releaseDate: title.releaseDate }));
       const catalogueLine = topPicks.length ? topPicks.map((title, index) => `${index + 1}. ${title.title}${title.releaseDate ? ` (${title.releaseDate.slice(0, 4)})` : ""}`).join("; ") : "No catalog candidates were returned.";
@@ -144,9 +144,9 @@ export const appRouter = router({
   }),
   tasteProfile: router({
     get: protectedProcedure.query(({ ctx }) => getTasteProfile(ctx.user.id)),
-    save: protectedProcedure.input(z.object({ favoriteGenreIds: z.array(z.number().int().positive()).max(12), preferredLanguages: z.array(z.string().regex(/^[a-z]{2}$/)).max(12), maxRuntimeMinutes: z.number().int().min(30).max(360).nullable(), includeMovies: z.boolean(), includeSeries: z.boolean() })).mutation(async ({ ctx, input }) => {
+    save: protectedProcedure.input(z.object({ favoriteGenreIds: z.array(z.number().int().positive()).max(12), preferredLanguages: z.array(z.string().regex(/^[a-z]{2}$/)).max(12), maxRuntimeMinutes: z.number().int().min(30).max(360).nullable(), includeMovies: z.boolean(), includeSeries: z.boolean(), defaultRegion: z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/).default("IN"), interfaceDensity: z.enum(["comfortable", "compact"]).default("comfortable"), reducedMotion: z.boolean().default(false) })).mutation(async ({ ctx, input }) => {
       if (!input.includeMovies && !input.includeSeries) throw new Error("Choose films, series, or both.");
-      await upsertTasteProfile(ctx.user.id, { favoriteGenresJson: JSON.stringify(input.favoriteGenreIds), preferredLanguagesJson: JSON.stringify(input.preferredLanguages), maxRuntimeMinutes: input.maxRuntimeMinutes, includeMovies: input.includeMovies, includeSeries: input.includeSeries });
+      await upsertTasteProfile(ctx.user.id, { favoriteGenresJson: JSON.stringify(input.favoriteGenreIds), preferredLanguagesJson: JSON.stringify(input.preferredLanguages), maxRuntimeMinutes: input.maxRuntimeMinutes, includeMovies: input.includeMovies, includeSeries: input.includeSeries, defaultRegion: input.defaultRegion, interfaceDensity: input.interfaceDensity, reducedMotion: input.reducedMotion });
       return { success: true };
     }),
   }),

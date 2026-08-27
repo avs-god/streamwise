@@ -250,3 +250,9 @@
 - [x] Audit the current dependency manifest, migrations, application logs, release checklist, and source boundaries for reproducible final-release issues.
 - [x] Resolve any reproducible application, build, browser, accessibility, or standalone-runtime issues found in the final release audit.
 - [x] Rerun complete unit, browser, type, production-build, responsive, and standalone server smoke validation; publish the final verified build.
+- [x] Audit existing member settings, small-screen workflows, recommendation chat, and legal availability provider contracts for high-impact usability improvements.
+- [x] Expand Settings with member-controlled display, discovery, recommendation, alert, and account-preference controls that preserve consent and source boundaries.
+- [x] Improve mobile navigation, touch-target hierarchy, settings controls, and recommendation-chat interaction states across phone-width routes.
+- [x] Improve conversational recommendation chat with clear starter prompts, retained visible context, actionable result controls, and candid loading/empty/error states.
+- [x] Extend legal availability comparison and public-web context to surface YouTube, YouTube rental/purchase, and other configured platform results without treating web discussion as verified availability.
+- [x] Add unit and browser coverage for settings persistence, mobile interactions, recommendation chat, and YouTube/multi-platform source labels; run complete validation and publish the release.

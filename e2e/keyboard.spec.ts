@@ -452,3 +452,34 @@ test("Leaving Soon renders the direct web-grounded response for the member’s e
   await expect(page.getByRole("link", { name: /2012 departure guide/ })).toBeVisible();
   await expect(page.getByText(/not a confirmed provider departure/i)).toBeVisible();
 });
+
+test("signed-in members can reach rich mobile settings and use recommendation scope controls", async ({ page }) => {
+  const member = { id: 994, openId: "browser-settings-member", name: "Settings Member", email: null, loginMethod: "test", role: "user", createdAt: "2026-08-27T00:00:00.000Z", updatedAt: "2026-08-27T00:00:00.000Z", lastSignedIn: "2026-08-27T00:00:00.000Z" };
+  const profile = { id: 1, userId: 994, favoriteGenresJson: "[878]", preferredLanguagesJson: "[\"ja\"]", maxRuntimeMinutes: 120, includeMovies: true, includeSeries: true, defaultRegion: "US", interfaceDensity: "comfortable", reducedMotion: false, createdAt: "2026-08-27T00:00:00.000Z", updatedAt: "2026-08-27T00:00:00.000Z" };
+  await page.route("**/api/trpc/**", async route => {
+    const procedures = new URL(route.request().url()).pathname.split("/api/trpc/")[1]?.split(",") ?? [];
+    const entries = procedures.map(procedure => {
+      if (procedure === "auth.me") return { result: { data: { json: member } } };
+      if (procedure === "tasteProfile.get") return { result: { data: { json: profile } } };
+      if (procedure === "tasteProfile.save") return { result: { data: { json: { success: true } } } };
+      if (procedure === "catalog.discover") return { result: { data: { json: { configured: false, explanation: "Synthetic no-catalog response.", titles: [] } } } };
+      if (procedure === "viewingSignals.postWatchPicks") return { result: { data: { json: { explanation: "No private picks.", titles: [] } } } };
+      return { result: { data: { json: [] } } };
+    });
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(entries) });
+  });
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/settings");
+  await expect(page.getByRole("heading", { name: "Make Streamwise feel like yours." })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Science fiction" })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Open menu" }).click();
+  await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.goto("/recommendations");
+  const chat = page.locator("section[aria-labelledby='ai-recommendation-title']");
+  await expect(chat.getByRole("heading", { name: "Tell me what you feel like watching." })).toBeVisible();
+  await expect(chat.getByRole("button", { name: "Both" })).toBeVisible();
+  await chat.getByRole("button", { name: "Series" }).click();
+  await expect(chat.getByRole("button", { name: "Series" })).toHaveClass(/bg-\[#dfeee2\]/);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});

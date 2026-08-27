@@ -302,7 +302,7 @@ export async function removeViewingSignal(userId: number, id: number) {
   await db.delete(viewingSignals).where(and(eq(viewingSignals.id, id), eq(viewingSignals.userId, userId)));
 }
 
-export type TasteProfileInput = { favoriteGenresJson: string; preferredLanguagesJson: string; maxRuntimeMinutes: number | null; includeMovies: boolean; includeSeries: boolean };
+export type TasteProfileInput = { favoriteGenresJson: string; preferredLanguagesJson: string; maxRuntimeMinutes: number | null; includeMovies: boolean; includeSeries: boolean; defaultRegion: string; interfaceDensity: "comfortable" | "compact"; reducedMotion: boolean };
 
 /** Explicit member preference profile used only when the member chooses to save or apply it. */
 export async function getTasteProfile(userId: number) {

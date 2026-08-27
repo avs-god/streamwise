@@ -1,15 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 
 const researchDiscoveryLead = vi.hoisted(() => vi.fn());
+const recommendCatalogFromIntent = vi.hoisted(() => vi.fn(async () => ({ configured: true, explanation: "Catalog picks.", titles: [
+  { id: 1, title: "First Pick", mediaType: "movie", releaseDate: "2024-01-01", overview: null },
+  { id: 2, title: "Second Pick", mediaType: "movie", releaseDate: "2023-01-01", overview: null },
+  { id: 3, title: "Third Pick", mediaType: "movie", releaseDate: null, overview: null },
+] })));
 vi.mock("./aiDiscovery", () => ({ researchDiscoveryLead }));
 vi.mock("./aiRecommendations", () => ({ interpretRecommendationPrompt: vi.fn(async () => ({ query: "science fiction", referenceTitle: null, genreId: 878, mediaType: "movie", originalLanguage: null, maxRuntimeMinutes: null, explanation: "Science-fiction catalog intent." })) }));
 vi.mock("./catalog", () => ({
   isCatalogConfigured: vi.fn(() => true), searchCatalog: vi.fn(), getCatalogDetail: vi.fn(), discoverCatalog: vi.fn(), getSimilarCatalogTitles: vi.fn(), getRecommendedCatalogTitles: vi.fn(), mergePostWatchRecommendations: vi.fn(),
-  recommendCatalogFromIntent: vi.fn(async () => ({ configured: true, explanation: "Catalog picks.", titles: [
-    { id: 1, title: "First Pick", mediaType: "movie", releaseDate: "2024-01-01", overview: null },
-    { id: 2, title: "Second Pick", mediaType: "movie", releaseDate: "2023-01-01", overview: null },
-    { id: 3, title: "Third Pick", mediaType: "movie", releaseDate: null, overview: null },
-  ] })),
+  recommendCatalogFromIntent,
 }));
 
 import { appRouter } from "./routers";
@@ -27,5 +28,11 @@ describe("ai.recommend conversational research", () => {
     expect(result.conversation.research?.sources[0]?.url).toBe("https://example.com/essay");
     expect(result.conversation.reply).toContain("Catalog-backed top picks");
     expect(result.conversation.reply).toContain("IMDb and Rotten Tomatoes scores or review text are not imported");
+  });
+
+  it("honors an explicit chat-level series preference in the catalog request", async () => {
+    researchDiscoveryLead.mockResolvedValue(null);
+    await appRouter.createCaller(context()).ai.recommend({ prompt: "Suggest a clever series", region: "IN", language: "en-US", preferredMediaType: "tv" });
+    expect(recommendCatalogFromIntent).toHaveBeenLastCalledWith(expect.objectContaining({ mediaType: "tv" }), "en-US");
   });
 });
