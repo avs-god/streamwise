@@ -245,3 +245,5 @@
 - [x] Research and integrate a legal anime catalog/discovery source with normalized anime title metadata, while retaining TMDb, Watchmode, and Streaming Availability as separate country-specific offer sources.
 - [x] Add an anime search mode, anime-specific title cards and source-labelled public-web context, without treating anime database metadata or web discussion as verified legal availability.
 - [x] Validate provider-ribbon accessibility, anime discovery/empty/error states, source boundaries, card insights, mobile layouts, type safety, browser flows, production build, and standalone deployment; publish the update.
+- [x] Present the Leaving Soon query’s direct web-grounded model response prominently and verbatim as received, alongside inspectable sources and a clear separation from confirmed provider expiry signals.
+- [x] Add regression and browser coverage for direct Leaving Soon model response rendering, loading, error, and source-link states; publish the verified update.

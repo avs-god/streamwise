@@ -429,3 +429,26 @@ test("Discovery shows the provider belt and keeps AniList metadata separate from
   await page.setViewportSize({ width: 375, height: 812 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
+
+test("Leaving Soon renders the direct web-grounded response for the member’s exact question", async ({ page }) => {
+  const member = { id: 993, openId: "browser-leaving-soon-member", name: "Browser Member", email: null, loginMethod: "test", role: "user", createdAt: "2026-08-27T00:00:00.000Z", updatedAt: "2026-08-27T00:00:00.000Z", lastSignedIn: "2026-08-27T00:00:00.000Z" };
+  await page.route("**/api/trpc/**", async route => {
+    const procedures = new URL(route.request().url()).pathname.split("/api/trpc/")[1]?.split(",") ?? [];
+    const entries = procedures.map(procedure => {
+      if (procedure === "auth.me") return { result: { data: { json: member } } };
+      if (procedure === "catalog.status") return { result: { data: { json: { configured: false, provider: "TMDb / JustWatch" } } } };
+      if (procedure === "community.list") return { result: { data: { json: [] } } };
+      if (procedure === "ai.research") return { result: { data: { json: { status: "lead", summary: "A short summary.", directResponse: "Public search results discuss possible changes for 2012.\n\nOpen the reporting link for details.", sources: [{ title: "2012 departure guide", url: "https://film.example/2012-departure", domain: "film.example", kind: "reporting" }], communitySources: [], searchedAt: "2026-08-27T00:00:00.000Z", limitation: "Public-web context is separate from the legal catalogue.", resolvedQuery: "2012 movie leaving Netflix", correctionNote: null } } } };
+      return { result: { data: { json: [] } } };
+    });
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(entries) });
+  });
+  await page.goto("/leaving-soon");
+  await page.getByLabel("Leaving Soon research question").fill("2012 movie leaving Netflix");
+  await page.getByRole("button", { name: "Search the web" }).click();
+  await expect(page.getByText("Direct web-grounded model response")).toBeVisible();
+  await expect(page.getByText("Public search results discuss possible changes for 2012.")).toBeVisible();
+  await expect(page.getByText("Open the reporting link for details.")).toBeVisible();
+  await expect(page.getByRole("link", { name: /2012 departure guide/ })).toBeVisible();
+  await expect(page.getByText(/not a confirmed provider departure/i)).toBeVisible();
+});

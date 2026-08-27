@@ -52,6 +52,9 @@ describe("AI discovery provenance", () => {
     expect(parseStructuredLead('{"status":"lead","summary":"A report may be relevant."}')).toEqual({ status: "lead", summary: "A report may be relevant.", directResponse: "A report may be relevant." });
     expect(parseStructuredLead("not JSON")).toBeNull();
   });
+  it("preserves safe direct-answer line breaks rather than rewriting the model response", () => {
+    expect(parseStructuredLead('{"status":"lead","summary":"A report may be relevant.","directResponse":"First model line.\\n\\nSecond model line."}')).toEqual({ status: "lead", summary: "A report may be relevant.", directResponse: "First model line.\n\nSecond model line." });
+  });
   it("returns insufficient evidence when a valid AI summary lacks inspectable citations", async () => {
     mockedLlm.invokeLLM.mockResolvedValueOnce({ choices: [{ message: { content: JSON.stringify({ status: "lead", summary: "A report may be relevant." }), metadata: { source_citations: [] } } }] });
     const result = await researchDiscoveryLead({ query: "A platform update", region: "US", language: "en-US" });
@@ -91,5 +94,9 @@ describe("AI discovery provenance", () => {
     expect(panel).toContain("No grounded source returned");
     expect(panel).toContain("Direct web-grounded answer");
     expect(panel).toContain("Searching the public web and compiling a direct answer");
+    const leavingSoon = readFileSync(resolve(process.cwd(), "client/src/pages/LeavingSoon.tsx"), "utf8");
+    expect(leavingSoon).toContain("Direct web-grounded model response");
+    expect(leavingSoon).toContain("research.data.directResponse");
+    expect(leavingSoon).toContain("query: researchQuery.trim()");
   });
 });

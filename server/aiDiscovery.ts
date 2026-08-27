@@ -29,7 +29,7 @@ function textContent(content: unknown) {
 }
 
 export function cleanSummary(content: string) { return content.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, "$1").replace(/https?:\/\/\S+/g, "").replace(/\s+/g, " ").trim().slice(0, 900); }
-function cleanDirectResponse(content: string) { return content.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, "$1").replace(/https?:\/\/\S+/g, "").replace(/\s+/g, " ").trim().slice(0, 1500); }
+function validatedDirectResponse(content: string) { return content.length <= 1500 && content.trim() ? content : ""; }
 function hasSensitiveContent(content: string) { return /\b(?:api[_ -]?key|password|secret|bearer\s+[a-z0-9._-]+)\b|[\w.+-]+@[\w.-]+\.[a-z]{2,}/i.test(content); }
 
 const titleAliases: Array<{ typo: RegExp; query: string; note: string }> = [
@@ -73,7 +73,7 @@ export function parseStructuredLead(content: unknown): StructuredLead | null {
     const parsed = JSON.parse(textContent(content)) as Partial<StructuredLead>;
     if ((parsed.status !== "lead" && parsed.status !== "insufficient") || typeof parsed.summary !== "string") return null;
     const summary = cleanSummary(parsed.summary);
-    const directResponse = cleanDirectResponse(typeof parsed.directResponse === "string" ? parsed.directResponse : parsed.summary);
+    const directResponse = validatedDirectResponse(typeof parsed.directResponse === "string" ? parsed.directResponse : parsed.summary);
     if (!summary || summary.length > 900 || !directResponse || directResponse.length > 1500 || ASSERTIVE_AVAILABILITY.test(summary) || hasSensitiveContent(directResponse)) return null;
     return { status: parsed.status, summary, directResponse };
   } catch { return null; }
@@ -110,7 +110,7 @@ export async function researchDiscoveryLead(input: { query: string; region: stri
     const correction = intent.correctionNote ? ` ${intent.correctionNote.replace(/\*\*/g, "")}` : "";
     return insufficient(`I searched “${intent.resolvedQuery}” but could not ground an inspectable public reading link in this session.${correction} You can still use the legal catalog for current country-specific offers.`, intent.resolvedQuery, intent.correctionNote);
   }
-  const isLeavingSoonQuery = /^leaving[- ]soon|platform-switch public context:/i.test(input.query.trim());
+  const isLeavingSoonQuery = /(?:leaving[- ]soon|platform[- ]switch|\bleaves?\b|\bexpiring\b)/i.test(input.query.trim());
   const summary = structured.status === "lead" ? (isLeavingSoonQuery ? structured.directResponse : structured.summary) : `Public-web reading and discussion links related to “${intent.resolvedQuery}” are collected below. Treat them as context, not current availability.`;
   const directResponse = structured.status === "lead" ? structured.directResponse : `I found public-web results related to “${intent.resolvedQuery}”. The linked pages below are the direct context for this answer; check the legal catalog for current country-specific offers.`;
   return { status: "lead", summary, directResponse, ...sourceGroups, searchedAt: new Date().toISOString(), resolvedQuery: intent.resolvedQuery, correctionNote: intent.correctionNote, limitation: "This direct answer compiles public-web context. It remains separate from the licensed country-specific legal catalog, which is the place to confirm current offers." };

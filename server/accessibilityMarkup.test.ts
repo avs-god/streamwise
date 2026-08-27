@@ -226,8 +226,9 @@ describe("keyboard and semantic-accessibility regression checks", () => {
     expect(hub).toContain("No OTT passwords or private watchlists.");
     expect(hub).toContain("official provider-authorized OAuth or API integration");
     expect(hub).toContain("Grounded public-web check");
-    expect(hub).toContain("Look for source-linked reporting, not a rumor score.");
-    expect(hub).toContain("The results never create a countdown, confirmed move, alert, or legal offer.");
+    expect(hub).toContain("Ask directly. Read the grounded model response.");
+    expect(hub).toContain("It never becomes a confirmed departure, alert, countdown, or legal offer.");
+    expect(hub).toContain("Direct web-grounded model response");
     expect(community).toContain("reportedLeavingAt");
     expect(community).toContain("switchesToProviderName");
     expect(community).toContain("These fields are community leads, not confirmation.");
