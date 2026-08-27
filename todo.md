@@ -216,3 +216,10 @@
 - [x] Add a country/region selector to the card-level community contribution dialog and persist the selected region with each contribution.
 - [x] Improve AI recommendation conversations to return concise, source-linked public criticism/discussion summaries and catalog-backed top-three genre picks, while keeping legal offers separate and external IMDb/Rotten Tomatoes scores or review text licensed-provider-only.
 - [x] Validate moderation bulk actions, pre-approved contribution visibility, region selection, conversational recommendation research, source/empty/error states, keyboard accessibility, type safety, browser flows, and production build; publish the update.
+- [x] Restore immediate public publication for community contributions, retaining source labels and post-publication reporting/takedown controls.
+- [x] Move administrator-only contribution and discussion report tooling into a dedicated protected moderation panel with clear navigation and public access denial.
+- [x] Validate immediate-publication visibility, dedicated administrator panel authorization, report/takedown actions, keyboard accessibility, type safety, browser flows, and production build; publish the update.
+- [ ] Audit and refine phone-scale layouts, tap targets, overflow behavior, and mobile content hierarchy across Streamwise’s primary pages.
+- [ ] Replace the mobile top-link strip with an accessible slide-in navigation drawer while retaining desktop navigation and administrator-only moderation access.
+- [ ] Add an always-available bottom-right assistant launcher and extend the assistant’s explicit-context briefing with saved watchlist, viewing signals, wallet, alerts, taste preferences, and opted-in community context.
+- [ ] Validate dedicated moderation, mobile navigation, responsive layouts, persistent assistant access, context boundaries, keyboard behavior, type safety, browser flows, and production build; publish the update.

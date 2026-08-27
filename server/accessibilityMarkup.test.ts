@@ -129,12 +129,13 @@ describe("keyboard and semantic-accessibility regression checks", () => {
   });
 
   it("gates moderation tools to administrators and keeps report targets distinct", () => {
-    const community = source("client/src/pages/Community.tsx");
-    expect(community).toContain('user?.role === "admin" ? <ModerationPanel />');
-    expect(community).toContain("Open community reports");
-    expect(community).toContain("Hide contribution");
-    expect(community).toContain("Hide {report.replyId ? \"reply\" : \"thread\"}");
-    expect(community).toContain("trpc.community.moderation.setReplyStatus");
+    const moderation = source("client/src/pages/Moderation.tsx");
+    expect(moderation).toContain('user?.role === "admin"');
+    expect(moderation).toContain("Administrator access only");
+    expect(moderation).toContain("Take down contribution");
+    expect(moderation).toContain('Take down {report.replyId ? "reply" : "thread"}');
+    expect(moderation).toContain("trpc.community.moderation.setReplyStatus");
+    expect(source("client/src/pages/Community.tsx")).toContain("publish immediately");
   });
 
   it("preserves nested reply controls and visible parent-reply treatment", () => {

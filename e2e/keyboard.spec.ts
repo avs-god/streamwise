@@ -355,12 +355,12 @@ test("intercepted member creates a nested title-linked reply and reports an indi
   await expect.poll(() => state.reportedReply).toBe(true);
 });
 
-test("intercepted admin hides a reported reply through the private moderation panel", async ({ page }) => {
+test("intercepted admin hides a reported reply through the dedicated moderation panel", async ({ page }) => {
   const state = { replyHidden: false };
   await mockAdminModeration(page, state);
-  await page.goto("/community");
-  await expect(page.getByRole("heading", { name: "Open community reports" })).toBeVisible();
-  await page.getByRole("button", { name: "Hide reply" }).click();
+  await page.goto("/moderation");
+  await expect(page.getByRole("heading", { name: "Community moderation" })).toBeVisible();
+  await page.getByRole("button", { name: "Take down reply" }).click();
   await expect.poll(() => state.replyHidden).toBe(true);
   await expect(page.getByText("No open discussion reports.")).toBeVisible();
 });

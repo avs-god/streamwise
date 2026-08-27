@@ -14,6 +14,7 @@ import TitlePage from "@/pages/TitlePage";
 import LeavingSoon from "@/pages/LeavingSoon";
 import Settings from "@/pages/Settings";
 import Pricing from "@/pages/Pricing";
+import Moderation from "@/pages/Moderation";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/updates" component={Updates} />
       <Route path="/assistant" component={Assistant} />
       <Route path="/community" component={Community} />
+      <Route path="/moderation" component={Moderation} />
       <Route path="/recommendations" component={Recommendations} />
       <Route path="/leaving-soon" component={LeavingSoon} />
       <Route path="/settings" component={Settings} />

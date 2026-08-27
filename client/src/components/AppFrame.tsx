@@ -2,7 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ArrowUpRight, BellRing, Bookmark, Bot, Compass, LayoutList, LogOut, MessagesSquare, Settings2, Star, TimerReset, WalletCards } from "lucide-react";
+import { ArrowUpRight, BellRing, Bookmark, Bot, Compass, LayoutList, LogOut, MessagesSquare, Settings2, ShieldCheck, Star, TimerReset, WalletCards } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 const nav = [
@@ -35,6 +35,7 @@ export default function AppFrame({ children }: { children: React.ReactNode }) {
               const active = location === item.href;
               return <Link key={item.href} href={item.href} className={cn("rounded-full px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", active ? "bg-[#e7dfc8] text-[#173d30]" : "text-[#557066] hover:bg-[#eee9dc]")}>{item.label}</Link>;
             })}
+            {user?.role === "admin" ? <Link href="/moderation" className={cn("rounded-full px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", location === "/moderation" ? "bg-[#e7dfc8] text-[#173d30]" : "text-[#557066] hover:bg-[#eee9dc]")}>Moderation</Link> : null}
           </nav>
 
           <div className="flex items-center gap-2">
@@ -56,6 +57,7 @@ export default function AppFrame({ children }: { children: React.ReactNode }) {
             const Icon = item.icon;
             return <Link key={item.href} href={item.href} className={cn("flex min-w-[4.25rem] shrink-0 flex-col items-center gap-1 rounded-lg px-1 py-1.5 text-[0.62rem] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", active ? "bg-[#e7dfc8] text-[#1e4a3a]" : "text-[#72847d]")}><Icon className="size-4" />{item.label}</Link>;
           })}
+          {user?.role === "admin" ? <Link href="/moderation" className={cn("flex min-w-[4.25rem] shrink-0 flex-col items-center gap-1 rounded-lg px-1 py-1.5 text-[0.62rem] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", location === "/moderation" ? "bg-[#e7dfc8] text-[#1e4a3a]" : "text-[#72847d]")}><ShieldCheck className="size-4" />Moderate</Link> : null}
         </nav>
       </header>
       {children}
