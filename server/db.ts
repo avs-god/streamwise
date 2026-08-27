@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   alertPreferences,
@@ -302,9 +302,29 @@ export async function getCommunityReports() {
   return db.select().from(communityReports).where(eq(communityReports.status, "open")).orderBy(desc(communityReports.createdAt)).limit(100);
 }
 
-export async function setCommunityPostStatus(postId: number, status: "visible" | "hidden" | "removed") {
+export async function getPendingCommunityPosts() {
+  const db = await getDb(); if (!db) return [];
+  const rows = await db.select({ post: communityPosts, contributorName: users.name }).from(communityPosts).leftJoin(users, eq(communityPosts.userId, users.id)).where(eq(communityPosts.status, "pending")).orderBy(communityPosts.createdAt).limit(100);
+  return rows.map(({ post, contributorName }) => toPublicCommunityItem(post, contributorName));
+}
+
+export type CommunityPostStatus = "pending" | "visible" | "hidden" | "removed";
+
+export async function setCommunityPostStatus(postId: number, status: CommunityPostStatus) {
   const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
   await db.update(communityPosts).set({ status }).where(eq(communityPosts.id, postId));
+}
+
+export async function setCommunityPostStatuses(postIds: number[], status: CommunityPostStatus) {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  if (!postIds.length) return;
+  await db.update(communityPosts).set({ status }).where(inArray(communityPosts.id, postIds));
+}
+
+export async function setCommunityReportStatuses(reportIds: number[], status: "resolved" | "dismissed") {
+  const db = await getDb(); if (!db) throw new Error("Database is unavailable.");
+  if (!reportIds.length) return;
+  await db.update(communityReports).set({ status }).where(inArray(communityReports.id, reportIds));
 }
 
 export type CommunityThreadInput = { tmdbId: number | null; title: string; mediaType: "movie" | "tv" | "unknown"; topic: "plot" | "recommendation" | "discussion" | "craft"; headline: string; body: string; containsSpoilers: boolean; shareAttribution: boolean };

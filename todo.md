@@ -212,3 +212,7 @@
 - [x] Validate the digest, independent-AI configuration, inactive email-provider behavior, type safety, browser states, and production build; leave secure deployment values for later entry.
 - [x] Preserve the managed AI/notification fallback until independent deployment values are present, then automatically prefer the configured OpenAI-compatible provider and verified Resend delivery path without browser-side key exposure.
 - [x] Document and validate the no-key managed fallback and future direct-provider activation gates without altering deployment environment files.
+- [x] Add moderator bulk review actions and an explicit pre-approved publishing state for community posts and reports, preserving auditability and user-report moderation safeguards.
+- [x] Add a country/region selector to the card-level community contribution dialog and persist the selected region with each contribution.
+- [x] Improve AI recommendation conversations to return concise, source-linked public criticism/discussion summaries and catalog-backed top-three genre picks, while keeping legal offers separate and external IMDb/Rotten Tomatoes scores or review text licensed-provider-only.
+- [x] Validate moderation bulk actions, pre-approved contribution visibility, region selection, conversational recommendation research, source/empty/error states, keyboard accessibility, type safety, browser flows, and production build; publish the update.

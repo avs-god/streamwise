@@ -1,0 +1,1 @@
+ALTER TABLE `communityPosts` MODIFY COLUMN `status` enum('pending','visible','hidden','removed') NOT NULL DEFAULT 'pending';

@@ -172,7 +172,7 @@ export const communityPosts = mysqlTable(
     body: text("body").notNull(),
     sourceUrl: varchar("sourceUrl", { length: 1024 }),
     shareAttribution: boolean("shareAttribution").default(false).notNull(),
-    status: mysqlEnum("status", ["visible", "hidden", "removed"]).default("visible").notNull(),
+    status: mysqlEnum("status", ["pending", "visible", "hidden", "removed"]).default("pending").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },

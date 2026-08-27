@@ -15,6 +15,7 @@ import {
   getProviderAlertSubscriptions,
   getAlerts,
   getCommunityPosts,
+  getPendingCommunityPosts,
   getCommunityThreadReports,
   getCommunityTitleRatingSummary,
   getCommunityTitleLeavingSoonSignals,
@@ -43,6 +44,8 @@ import {
   updateWatchlistNote,
   upsertTasteProfile,
   setCommunityPostStatus,
+  setCommunityPostStatuses,
+  setCommunityReportStatuses,
   setCommunityTitleRating,
   setCommunityThreadStatus,
   setCommunityThreadReplyStatus,
@@ -97,11 +100,17 @@ export const appRouter = router({
   }),
   ai: router({
     research: protectedProcedure.input(z.object({ query: z.string().trim().min(3).max(220), region: z.string().regex(/^[A-Z]{2}$/), language: z.string().min(2).max(20) })).mutation(({ input }) => researchDiscoveryLead(input)),
-    recommend: publicProcedure.input(z.object({ prompt: z.string().trim().min(3).max(500), language: z.string().min(2).max(20).default("en-US"), preferredOriginalLanguage: z.string().regex(/^[a-z]{2}$/).nullable().optional(), maxRuntimeMinutes: z.number().int().min(30).max(360).nullable().optional() })).mutation(async ({ input }) => {
-      const interpretation = await interpretRecommendationPrompt(input.prompt);
+    recommend: publicProcedure.input(z.object({ prompt: z.string().trim().min(3).max(500), conversationContext: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().trim().min(1).max(1600) })).max(6).optional(), region: z.string().regex(/^[A-Z]{2}$/).default("IN"), language: z.string().min(2).max(20).default("en-US"), preferredOriginalLanguage: z.string().regex(/^[a-z]{2}$/).nullable().optional(), maxRuntimeMinutes: z.number().int().min(30).max(360).nullable().optional() })).mutation(async ({ ctx, input }) => {
+      const contextualPrompt = input.conversationContext?.length ? `${input.conversationContext.map(message => `${message.role}: ${message.content}`).join("\n")}\nuser: ${input.prompt}` : input.prompt;
+      const interpretation = await interpretRecommendationPrompt(contextualPrompt);
       const resolvedIntent = { ...interpretation, originalLanguage: input.preferredOriginalLanguage ?? interpretation.originalLanguage, maxRuntimeMinutes: input.maxRuntimeMinutes ?? interpretation.maxRuntimeMinutes };
       const catalog = await recommendCatalogFromIntent(resolvedIntent, input.language);
-      return { ...catalog, interpretation: resolvedIntent };
+      const topPicks = catalog.titles.slice(0, 3).map(title => ({ id: title.id, title: title.title, mediaType: title.mediaType, releaseDate: title.releaseDate }));
+      const catalogueLine = topPicks.length ? topPicks.map((title, index) => `${index + 1}. ${title.title}${title.releaseDate ? ` (${title.releaseDate.slice(0, 4)})` : ""}`).join("; ") : "No catalog candidates were returned.";
+      const research = ctx.user ? await researchDiscoveryLead({ query: `Recommendation conversation: ${input.prompt}\nCatalog-backed top candidates: ${catalogueLine}\nGive a concise decision-oriented reading of public criticism, movie-blog commentary, and clearly labelled public discussion. Do not reproduce IMDb or Rotten Tomatoes scores, ratings, or review text without a licensed source. Do not claim web discussion proves availability or rank the catalog candidates from web claims alone.`, region: input.region, language: input.language }) : null;
+      const topThreeReply = topPicks.length ? `Catalog-backed top picks: ${catalogueLine}.` : "The catalog did not return a matching title list.";
+      const analysisReply = research?.status === "lead" ? research.directResponse : ctx.user ? "I could not collect inspectable public criticism links for a fuller reading in this session." : "Sign in to add source-linked public criticism and discussion to this conversation.";
+      return { ...catalog, interpretation: resolvedIntent, conversation: { reply: `${topThreeReply} ${analysisReply} IMDb and Rotten Tomatoes scores or review text are not imported unless an approved licensed source is configured.`, topPicks, research } };
     }),
   }),
   assistant: router({
@@ -147,8 +156,11 @@ export const appRouter = router({
     reportThread: protectedProcedure.input(z.object({ threadId: z.number().int().positive(), replyId: z.number().int().positive().nullable().optional(), reason: z.enum(["spoiler", "misleading", "spam", "abuse", "privacy", "other"]), detail: z.string().trim().max(500).nullable().optional() })).mutation(async ({ ctx, input }) => { await reportCommunityThread(ctx.user.id, { ...input, replyId: input.replyId ?? null, detail: input.detail ?? null }); return { success: true }; }),
     moderation: router({
       reports: adminProcedure.query(() => getCommunityReports()),
+      pendingPosts: adminProcedure.query(() => getPendingCommunityPosts()),
       threadReports: adminProcedure.query(() => getCommunityThreadReports()),
-      setStatus: adminProcedure.input(z.object({ postId: z.number().int().positive(), status: z.enum(["visible", "hidden", "removed"]) })).mutation(async ({ input }) => { await setCommunityPostStatus(input.postId, input.status); return { success: true }; }),
+      setStatus: adminProcedure.input(z.object({ postId: z.number().int().positive(), status: z.enum(["pending", "visible", "hidden", "removed"]) })).mutation(async ({ input }) => { await setCommunityPostStatus(input.postId, input.status); return { success: true }; }),
+      bulkSetStatus: adminProcedure.input(z.object({ postIds: z.array(z.number().int().positive()).min(1).max(50), status: z.enum(["visible", "hidden", "removed"]) })).mutation(async ({ input }) => { await setCommunityPostStatuses(input.postIds, input.status); return { success: true, count: input.postIds.length }; }),
+      bulkSetReportStatus: adminProcedure.input(z.object({ reportIds: z.array(z.number().int().positive()).min(1).max(50), status: z.enum(["resolved", "dismissed"]) })).mutation(async ({ input }) => { await setCommunityReportStatuses(input.reportIds, input.status); return { success: true, count: input.reportIds.length }; }),
       setThreadStatus: adminProcedure.input(z.object({ threadId: z.number().int().positive(), status: z.enum(["visible", "hidden", "removed"]) })).mutation(async ({ input }) => { await setCommunityThreadStatus(input.threadId, input.status); return { success: true }; }),
       setReplyStatus: adminProcedure.input(z.object({ replyId: z.number().int().positive(), status: z.enum(["visible", "hidden", "removed"]) })).mutation(async ({ input }) => { await setCommunityThreadReplyStatus(input.replyId, input.status); return { success: true }; }),
     }),
