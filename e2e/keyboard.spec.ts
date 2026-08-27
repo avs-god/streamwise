@@ -211,8 +211,8 @@ test("keyboard users can navigate core routes and submit the labelled discovery 
   await community.focus();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/community$/);
-  await expect(page.getByRole("heading", { name: "What members are noticing." })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Talk plots, craft, and what to watch next." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Talk about what you watched." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Latest all threads." })).toBeVisible();
 });
 
 test("public browser routes preserve no-catalog and private-member boundaries", async ({ page }) => {
@@ -241,7 +241,7 @@ test("public browser routes preserve no-catalog and private-member boundaries", 
   await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
 
   await page.goto("/community?tmdbId=27205&mediaType=movie&title=Inception");
-  await expect(page.getByRole("heading", { name: "What members are noticing." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Talk about what you watched." })).toBeVisible();
   await expect(page.getByRole("button", { name: "Sign in to contribute" })).toBeVisible();
   await expect(page.getByText("Community observations are public discussion, not catalog evidence.")).toBeVisible();
 });
@@ -277,25 +277,24 @@ test("AI recommendation chat converts a natural-language taste prompt into catal
       if (procedure === "auth.me") return { result: { data: { json: null } } };
       if (procedure === "catalog.discover") return { result: { data: { json: { configured: false, titles: [], explanation: "Catalog standby for deterministic browser coverage." } } } };
       if (procedure === "catalog.offerPreview") return { result: { data: { json: { configured: false, offers: [], checkedAt: null, sourceUrl: null } } } };
-      if (procedure === "ai.recommend") return { result: { data: { json: { configured: true, explanation: "Catalog results matching the requested genre.", interpretation: { query: "smart science fiction", referenceTitle: "Inception", genreId: 878, mediaType: "movie", originalLanguage: null, explanation: "A science-fiction movie request related to Inception." }, titles: [{ id: 777, mediaType: "movie", title: "Synthetic Space Film", originalTitle: null, overview: "A catalog-backed synthetic result for browser coverage.", posterPath: null, releaseDate: "2026-01-01" }] } } } };
+      if (procedure === "ai.recommend") return { result: { data: { json: { configured: true, explanation: "Catalog results matching the requested genre.", interpretation: { query: "smart science fiction", referenceTitle: "Inception", genreId: 878, mediaType: "movie", originalLanguage: null, explanation: "A science-fiction movie request related to Inception." }, titles: [{ id: 777, mediaType: "movie", title: "Synthetic Space Film", originalTitle: null, overview: "A catalog-backed synthetic result for browser coverage.", posterPath: null, releaseDate: "2026-01-01" }], conversation: { reply: "I’d start with Synthetic Space Film (2026). I read your request as: A science-fiction movie request related to Inception.", rationale: "I read your request as: A science-fiction movie request related to Inception.", nextStep: "Open a pick to compare current legal offers in your country.", usedSavedTaste: false, research: null } } } } };
       return { result: { data: { json: [] } } };
     });
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(entries) });
   });
   await page.goto("/recommendations");
-  await page.getByLabel("Recommendation language filter").selectOption("hi");
-  await page.getByLabel("Recommendation runtime filter").selectOption("120");
   const prompt = page.getByLabel("Ask for a recommendation");
   await prompt.fill("I want a tense science-fiction film like Inception");
-  await page.getByRole("button", { name: "Get recommendations" }).click();
-  await expect(page.getByText("A science-fiction movie request related to Inception.")).toBeVisible();
-  await expect(page.getByRole("button", { name: /Film · 2026 Synthetic Space Film/ })).toBeVisible();
-  await expect(page.getByText("Catalog results matching the requested genre.", { exact: true })).toBeVisible();
-  await expect(page.getByText("Sign in to add optional source-linked public-web context to this request.")).toBeVisible();
-  await page.getByRole("button", { name: "Synthetic Space Film", exact: true }).click();
+  await page.getByRole("button", { name: "Ask Streamwise" }).click();
+  await expect(page.getByText("A good place to start")).toBeVisible();
+  await expect(page.getByText(/I’d start with Synthetic Space Film/)).toBeVisible();
+  await expect(page.getByText("Why this fits")).toBeVisible();
+  await expect(page.getByText("Three picks to consider.")).toBeVisible();
+  await expect(page.getByText("Synthetic Space Film", { exact: true })).toBeVisible();
+  await expect(page.getByText("Sign in to add optional source-linked public reading to this conversation.")).toBeVisible();
   await expect(page.getByText(/More like Synthetic Space Film/).first()).toBeVisible();
   await page.setViewportSize({ width: 375, height: 812 });
-  await expect(page.getByRole("button", { name: /Film · 2026 Synthetic Space Film/ })).toBeVisible();
+  await expect(page.getByText("Three picks to consider.")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
@@ -345,12 +344,12 @@ test("intercepted member creates a nested title-linked reply and reports an indi
   await page.getByRole("button", { name: "Synthetic title-linked discussion" }).click();
   await expect(page.getByText("Synthetic parent reply")).toBeVisible();
   await expect(page.getByText("Spoilers", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Reply to this comment" }).click();
-  await page.getByLabel("Reply to comment").fill("A nested synthetic response");
+  await page.getByRole("button", { name: "Reply", exact: true }).click();
+  await page.getByLabel("Reply to this comment").fill("A nested synthetic response");
   await page.getByRole("button", { name: "Post reply" }).click();
   await expect(page.getByText("Synthetic nested reply")).toBeVisible();
   expect(state.childCreated).toBe(true);
-  await page.getByRole("button", { name: "Report reply" }).first().click();
+  await page.getByRole("button", { name: "Report", exact: true }).first().click();
   await page.getByRole("button", { name: "Send reply report" }).click();
   await expect.poll(() => state.reportedReply).toBe(true);
 });
@@ -395,6 +394,15 @@ test("mobile drawer navigation and persistent assistant launcher remain keyboard
   await page.goto("/");
   await page.getByRole("button", { name: "Open menu" }).click();
   await expect(page.getByRole("navigation", { name: "Mobile navigation" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Community", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Assistant", exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Community", exact: true }).click();
+  await expect(page).toHaveURL(/\/community$/);
+  await page.getByRole("button", { name: "Open menu" }).click();
+  await page.getByRole("link", { name: "Assistant", exact: true }).click();
+  await expect(page).toHaveURL(/\/assistant$/);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Open menu" }).click();
   await page.getByRole("link", { name: "Recommendations" }).click();
   await expect(page).toHaveURL(/\/recommendations$/);
   await expect(page.getByRole("link", { name: "Open your Streamwise assistant" })).toBeVisible();
@@ -478,8 +486,8 @@ test("signed-in members can reach rich mobile settings and use recommendation sc
   await page.goto("/recommendations");
   const chat = page.locator("section[aria-labelledby='ai-recommendation-title']");
   await expect(chat.getByRole("heading", { name: "Tell me what you feel like watching." })).toBeVisible();
-  await expect(chat.getByRole("button", { name: "Both" })).toBeVisible();
-  await chat.getByRole("button", { name: "Series" }).click();
-  await expect(chat.getByRole("button", { name: "Series" })).toHaveClass(/bg-\[#dfeee2\]/);
+  await expect(chat.getByText("Natural-language picks")).toBeVisible();
+  await expect(chat.getByLabel("Ask for a recommendation")).toBeVisible();
+  await expect(chat.getByLabel("Recommendation language filter")).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

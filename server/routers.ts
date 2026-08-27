@@ -110,17 +110,24 @@ export const appRouter = router({
   }),
   ai: router({
     research: protectedProcedure.input(z.object({ query: z.string().trim().min(3).max(220), region: z.string().regex(/^[A-Z]{2}$/), language: z.string().min(2).max(20) })).mutation(({ input }) => researchDiscoveryLead(input)),
-    recommend: publicProcedure.input(z.object({ prompt: z.string().trim().min(3).max(500), conversationContext: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().trim().min(1).max(1600) })).max(6).optional(), region: z.string().regex(/^[A-Z]{2}$/).default("IN"), language: z.string().min(2).max(20).default("en-US"), preferredOriginalLanguage: z.string().regex(/^[a-z]{2}$/).nullable().optional(), maxRuntimeMinutes: z.number().int().min(30).max(360).nullable().optional(), preferredMediaType: z.enum(["movie", "tv", "all"]).optional() })).mutation(async ({ ctx, input }) => {
+    recommend: publicProcedure.input(z.object({ prompt: z.string().trim().min(3).max(500), conversationContext: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().trim().min(1).max(1600) })).max(6).optional(), region: z.string().regex(/^[A-Z]{2}$/).default("IN"), language: z.string().min(2).max(20).default("en-US") })).mutation(async ({ ctx, input }) => {
       const contextualPrompt = input.conversationContext?.length ? `${input.conversationContext.map(message => `${message.role}: ${message.content}`).join("\n")}\nuser: ${input.prompt}` : input.prompt;
       const interpretation = await interpretRecommendationPrompt(contextualPrompt);
-      const resolvedIntent = { ...interpretation, mediaType: input.preferredMediaType ?? interpretation.mediaType, originalLanguage: input.preferredOriginalLanguage ?? interpretation.originalLanguage, maxRuntimeMinutes: input.maxRuntimeMinutes ?? interpretation.maxRuntimeMinutes };
+      const savedProfile = ctx.user ? await getTasteProfile(ctx.user.id) : null;
+      let savedLanguages: string[] = [];
+      let savedGenres: number[] = [];
+      try { const value = JSON.parse(savedProfile?.preferredLanguagesJson ?? "[]"); savedLanguages = Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && /^[a-z]{2}$/.test(item)) : []; } catch { /* Invalid legacy profile values are ignored. */ }
+      try { const value = JSON.parse(savedProfile?.favoriteGenresJson ?? "[]"); savedGenres = Array.isArray(value) ? value.filter((item): item is number => Number.isInteger(item) && item > 0) : []; } catch { /* Invalid legacy profile values are ignored. */ }
+      const savedMediaType = savedProfile && savedProfile.includeMovies !== savedProfile.includeSeries ? savedProfile.includeMovies ? "movie" as const : "tv" as const : "all" as const;
+      const resolvedIntent = { ...interpretation, genreId: interpretation.genreId ?? savedGenres[0] ?? null, mediaType: interpretation.mediaType === "all" ? savedMediaType : interpretation.mediaType, originalLanguage: interpretation.originalLanguage ?? savedLanguages[0] ?? null, maxRuntimeMinutes: interpretation.maxRuntimeMinutes ?? savedProfile?.maxRuntimeMinutes ?? null };
       const catalog = await recommendCatalogFromIntent(resolvedIntent, input.language);
       const topPicks = catalog.titles.slice(0, 3).map(title => ({ id: title.id, title: title.title, mediaType: title.mediaType, releaseDate: title.releaseDate }));
       const catalogueLine = topPicks.length ? topPicks.map((title, index) => `${index + 1}. ${title.title}${title.releaseDate ? ` (${title.releaseDate.slice(0, 4)})` : ""}`).join("; ") : "No catalog candidates were returned.";
       const research = ctx.user ? await researchDiscoveryLead({ query: `Recommendation conversation: ${input.prompt}\nCatalog-backed top candidates: ${catalogueLine}\nGive a concise decision-oriented reading of public criticism, movie-blog commentary, and clearly labelled public discussion. Do not reproduce IMDb or Rotten Tomatoes scores, ratings, or review text without a licensed source. Do not claim web discussion proves availability or rank the catalog candidates from web claims alone.`, region: input.region, language: input.language }) : null;
-      const topThreeReply = topPicks.length ? `Catalog-backed top picks: ${catalogueLine}.` : "The catalog did not return a matching title list.";
-      const analysisReply = research?.status === "lead" ? research.directResponse : ctx.user ? "I could not collect inspectable public criticism links for a fuller reading in this session." : "Sign in to add source-linked public criticism and discussion to this conversation.";
-      return { ...catalog, interpretation: resolvedIntent, conversation: { reply: `${topThreeReply} ${analysisReply} IMDb and Rotten Tomatoes scores or review text are not imported unless an approved licensed source is configured.`, topPicks, research } };
+      const opening = topPicks[0] ? `I’d start with ${topPicks[0].title}${topPicks[0].releaseDate ? ` (${topPicks[0].releaseDate.slice(0, 4)})` : ""}.` : "I could not find a confident catalog starting point for that request.";
+      const rationale = `I read your request as: ${resolvedIntent.explanation}`;
+      const nextStep = topPicks.length ? "Open a pick to compare current legal offers in your country, then continue the conversation if you want a different mood or pace." : "Try naming a title you liked, a mood, a genre, or the amount of time you have.";
+      return { ...catalog, interpretation: resolvedIntent, conversation: { reply: `${opening} ${rationale}`, rationale, nextStep, usedSavedTaste: Boolean(savedProfile && (savedGenres.length || savedLanguages.length || savedProfile.maxRuntimeMinutes || savedMediaType !== "all")), topPicks, research } };
     }),
   }),
   assistant: router({

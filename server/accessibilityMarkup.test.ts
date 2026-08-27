@@ -190,7 +190,7 @@ describe("keyboard and semantic-accessibility regression checks", () => {
     expect(populatedBranch.indexOf("<ExternalReferencePanel")).toBeLessThan(populatedBranch.indexOf("<TitleCommunity"));
     expect(populatedBranch.indexOf("<TitleCommunity")).toBeLessThan(populatedBranch.indexOf("<RelatedTitleGrid"));
     expect(title).toContain("Legal catalog is safely on standby.");
-    expect(community).toContain("Movie-buff threads");
+    expect(community).toContain("Conversation feed");
     expect(community).toContain("unverified leads");
   });
 

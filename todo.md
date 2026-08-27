@@ -256,3 +256,10 @@
 - [x] Improve conversational recommendation chat with clear starter prompts, retained visible context, actionable result controls, and candid loading/empty/error states.
 - [x] Extend legal availability comparison and public-web context to surface YouTube, YouTube rental/purchase, and other configured platform results without treating web discussion as verified availability.
 - [x] Add unit and browser coverage for settings persistence, mobile interactions, recommendation chat, and YouTube/multi-platform source labels; run complete validation and publish the release.
+- [x] Remove the newly emphasized recommendation-chat filter controls and preserve natural-language prompts as the primary interaction.
+- [x] Return recommendation-chat results in a concise structured conversational format with a direct answer, curated picks, rationale, and clearly separate public-reading context.
+- [x] Add regression and browser coverage for the simplified natural recommendation chat, then run full validation and publish the update.
+- [x] Audit why Community and Assistant are not visibly reachable in the current mobile navigation and verify their route behavior at phone width.
+- [x] Make mobile navigation reliably expose Community and Assistant without clipping, while preserving keyboard controls and administrator-only entries.
+- [x] Reorganize Community into a mobile-first Reddit-inspired thread feed with topic navigation, clear thread metadata, nested comment hierarchy, focused reading, and existing report/moderation controls.
+- [x] Add unit and browser coverage for mobile Community and Assistant navigation plus nested thread and reply interactions; run full validation and publish the update.

@@ -5,6 +5,7 @@ import CatalogOfferPreview from "@/components/CatalogOfferPreview";
 import CardCommunityContribution from "@/components/CardCommunityContribution";
 import CommunityRatingSummary from "@/components/CommunityRatingSummary";
 import LeavingSoonSignal from "@/components/LeavingSoonSignal";
+import NaturalRecommendationChat from "@/components/NaturalRecommendationChat";
 import QuickWatchlistSave from "@/components/QuickWatchlistSave";
 import TitleDialog from "@/components/TitleDialog";
 import { Button } from "@/components/ui/button";
@@ -39,7 +40,7 @@ export default function Recommendations() {
     <p className="eyebrow">Deterministic discovery</p>
     <h1 className="serif mt-2 text-4xl tracking-[-0.045em] text-[#214a3a] sm:text-5xl">Find the next great watch.</h1>
     <p className="mt-3 max-w-2xl leading-7 text-[#63756e]">These lists use catalog popularity, rating, or genre fields, not public discussion. Open a title to verify where it streams in your country.</p>
-    <AiRecommendationSearch region={selectedRegion} language={language} userSignedIn={Boolean(user)} onSelect={setSelected} />
+    <NaturalRecommendationChat region={selectedRegion} language={language} userSignedIn={Boolean(user)} onSelect={setSelected} />
     <div className="mt-7 flex flex-wrap gap-2"><Button variant={mode === "popular" ? "default" : "outline"} onClick={() => setMode("popular")} className={mode === "popular" ? "bg-[#1e4a3a] text-white" : "border-[#adc4b7] text-[#275842]"}><TrendingUp className="size-4" />Popular now</Button><Button variant={mode === "top_rated" ? "default" : "outline"} onClick={() => setMode("top_rated")} className={mode === "top_rated" ? "bg-[#1e4a3a] text-white" : "border-[#adc4b7] text-[#275842]"}><Star className="size-4" />Top rated</Button>{(["all", "movie", "tv"] as const).map(type => <button key={type} onClick={() => setMediaType(type)} className={`rounded-full px-3 py-2 text-sm font-semibold ${mediaType === type ? "bg-[#e4ecdf] text-[#214c39]" : "text-[#64776d]"}`}>{type === "all" ? "Films + series" : type === "movie" ? "Films" : "Series"}</button>)}</div>
     <div className="mt-4 flex flex-wrap items-center gap-2"><span className="text-sm text-[#63756e]">Genre:</span>{[[28, "Action"], [35, "Comedy"], [18, "Drama"], [878, "Sci‑Fi"]].map(([id, label]) => <button key={id} onClick={() => chooseGenre(Number(id))} className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${mode === "genre" && genreId === id ? "border-[#1e4a3a] bg-[#e4ecdf] text-[#214c39]" : "border-[#cbd7cd] text-[#597168]"}`}>{label}</button>)}<button type="button" onClick={() => setAdaptationNoticeOpen(value => !value)} aria-expanded={adaptationNoticeOpen} className="rounded-full border border-[#d7c7a5] bg-[#fff9e9] px-3 py-1.5 text-sm font-semibold text-[#76592b]">Adaptations</button></div>
     {adaptationNoticeOpen ? <aside className="mt-4 rounded-2xl border border-[#dfd0b1] bg-[#fff9ed] p-4 text-sm leading-6 text-[#705c37]"><strong>Adaptation lists are not guessed.</strong> The current verified catalog fields do not provide a complete, licensed “based on book / source material” relationship. Streamwise will add this route only when a permitted structured source is configured; title, genre, similar, popular, top-rated, and post-watch paths remain catalog-derived.</aside> : null}
@@ -68,7 +69,7 @@ function AiRecommendationSearch({ region, language, userSignedIn, onSelect }: { 
     setHistory(previous => [...previous, { role: "user", content: message }]);
     setLastPrompt(message);
     setPrompt("");
-    recommendation.mutate({ prompt: message, conversationContext: history.slice(-4).map(({ role, content }) => ({ role, content })), region, language, preferredOriginalLanguage, maxRuntimeMinutes, preferredMediaType: preferredMediaType === "all" ? undefined : preferredMediaType });
+    recommendation.mutate({ prompt: message, conversationContext: history.slice(-4).map(({ role, content }) => ({ role, content })), region, language });
   };
   const useSavedProfile = () => {
     const saved = profile.data;

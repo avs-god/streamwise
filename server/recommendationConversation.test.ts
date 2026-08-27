@@ -1,12 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 
 const researchDiscoveryLead = vi.hoisted(() => vi.fn());
+const getTasteProfile = vi.hoisted(() => vi.fn(async () => null));
 const recommendCatalogFromIntent = vi.hoisted(() => vi.fn(async () => ({ configured: true, explanation: "Catalog picks.", titles: [
   { id: 1, title: "First Pick", mediaType: "movie", releaseDate: "2024-01-01", overview: null },
   { id: 2, title: "Second Pick", mediaType: "movie", releaseDate: "2023-01-01", overview: null },
   { id: 3, title: "Third Pick", mediaType: "movie", releaseDate: null, overview: null },
 ] })));
 vi.mock("./aiDiscovery", () => ({ researchDiscoveryLead }));
+vi.mock("./db", async importOriginal => ({ ...(await importOriginal<typeof import("./db")>()), getTasteProfile }));
 vi.mock("./aiRecommendations", () => ({ interpretRecommendationPrompt: vi.fn(async () => ({ query: "science fiction", referenceTitle: null, genreId: 878, mediaType: "movie", originalLanguage: null, maxRuntimeMinutes: null, explanation: "Science-fiction catalog intent." })) }));
 vi.mock("./catalog", () => ({
   isCatalogConfigured: vi.fn(() => true), searchCatalog: vi.fn(), getCatalogDetail: vi.fn(), discoverCatalog: vi.fn(), getSimilarCatalogTitles: vi.fn(), getRecommendedCatalogTitles: vi.fn(), mergePostWatchRecommendations: vi.fn(),
@@ -26,13 +28,14 @@ describe("ai.recommend conversational research", () => {
     const result = await appRouter.createCaller(context()).ai.recommend({ prompt: "Is this science fiction movie good to watch?", conversationContext: [{ role: "user", content: "I like thoughtful science fiction." }], region: "IN", language: "en-US" });
     expect(result.conversation.topPicks.map(pick => pick.title)).toEqual(["First Pick", "Second Pick", "Third Pick"]);
     expect(result.conversation.research?.sources[0]?.url).toBe("https://example.com/essay");
-    expect(result.conversation.reply).toContain("Catalog-backed top picks");
-    expect(result.conversation.reply).toContain("IMDb and Rotten Tomatoes scores or review text are not imported");
+    expect(result.conversation.reply).toContain("I’d start with First Pick");
+    expect(result.conversation.rationale).toContain("Science-fiction catalog intent");
+    expect(result.conversation.nextStep).toContain("Open a pick to compare current legal offers");
   });
 
-  it("honors an explicit chat-level series preference in the catalog request", async () => {
+  it("keeps the model-interpreted natural-language catalog intent without a separate chat filter", async () => {
     researchDiscoveryLead.mockResolvedValue(null);
-    await appRouter.createCaller(context()).ai.recommend({ prompt: "Suggest a clever series", region: "IN", language: "en-US", preferredMediaType: "tv" });
-    expect(recommendCatalogFromIntent).toHaveBeenLastCalledWith(expect.objectContaining({ mediaType: "tv" }), "en-US");
+    await appRouter.createCaller(context()).ai.recommend({ prompt: "Suggest a clever series", region: "IN", language: "en-US" });
+    expect(recommendCatalogFromIntent).toHaveBeenLastCalledWith(expect.objectContaining({ mediaType: "movie", genreId: 878 }), "en-US");
   });
 });

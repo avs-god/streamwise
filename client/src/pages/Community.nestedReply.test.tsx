@@ -22,34 +22,34 @@ vi.mock("@/lib/trpc", () => ({
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
-import { ThreadRepliesDialog } from "./Community";
+import CommunityThreadDialog from "@/components/CommunityThreadDialog";
 
-const parent = { id: 1, parentReplyId: null, body: "Parent thought", containsSpoilers: false, contributorName: null };
-const child = { id: 2, parentReplyId: 1, body: "Nested follow-up", containsSpoilers: false, contributorName: null };
+const parent = { id: 1, parentReplyId: null, body: "Parent thought", containsSpoilers: false, contributorName: null, createdAt: "2026-08-27T00:00:00.000Z" };
+const child = { id: 2, parentReplyId: 1, body: "Nested follow-up", containsSpoilers: false, contributorName: null, createdAt: "2026-08-27T00:01:00.000Z" };
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
-describe("ThreadRepliesDialog nested reply behavior", () => {
+describe("CommunityThreadDialog nested reply behavior", () => {
   it("selects a parent, submits a child with parentReplyId, and renders the child after its parent", async () => {
     const user = userEvent.setup();
-    const view = render(<ThreadRepliesDialog threadId={5} open onOpenChange={vi.fn()} replies={[parent]} loading={false} onReportReply={vi.fn()} />);
-    await user.click(screen.getByRole("button", { name: "Reply to this comment" }));
-    expect(screen.getByText("Reply to comment")).toBeInTheDocument();
-    await user.type(screen.getByLabelText("Reply to comment"), "A nested reply");
+    const view = render(<CommunityThreadDialog threadId={5} open onOpenChange={vi.fn()} replies={[parent]} loading={false} onReportReply={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: "Reply" }));
+    expect(screen.getByText("Reply to this comment")).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Reply to this comment"), "A nested reply");
     await user.click(screen.getByRole("button", { name: "Post reply" }));
     expect(testState.mutate).toHaveBeenCalledWith({ threadId: 5, parentReplyId: 1, body: "A nested reply", containsSpoilers: false, shareAttribution: false });
-    view.rerender(<ThreadRepliesDialog threadId={5} open onOpenChange={vi.fn()} replies={[parent, child]} loading={false} onReportReply={vi.fn()} />);
+    view.rerender(<CommunityThreadDialog threadId={5} open onOpenChange={vi.fn()} replies={[parent, child]} loading={false} onReportReply={vi.fn()} />);
     const articles = Array.from(document.querySelectorAll("article"));
     expect(within(articles[0]!).getByText("Parent thought")).toBeInTheDocument();
     expect(within(articles[1]!).getByText("Nested follow-up")).toBeInTheDocument();
-    expect(articles[1]).toHaveClass("ml-5");
+    expect(articles[1]).toHaveClass("border-l-4");
   });
 
   it("sends an individual reply ID to the private moderation callback", async () => {
     const user = userEvent.setup();
     const onReportReply = vi.fn();
-    render(<ThreadRepliesDialog threadId={5} open onOpenChange={vi.fn()} replies={[parent]} loading={false} onReportReply={onReportReply} />);
-    await user.click(screen.getByRole("button", { name: "Report reply" }));
+    render(<CommunityThreadDialog threadId={5} open onOpenChange={vi.fn()} replies={[parent]} loading={false} onReportReply={onReportReply} />);
+    await user.click(screen.getByRole("button", { name: "Report" }));
     expect(onReportReply).toHaveBeenCalledWith(1);
   });
 });
