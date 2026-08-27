@@ -247,3 +247,6 @@
 - [x] Validate provider-ribbon accessibility, anime discovery/empty/error states, source boundaries, card insights, mobile layouts, type safety, browser flows, production build, and standalone deployment; publish the update.
 - [x] Present the Leaving Soon query’s direct web-grounded model response prominently and verbatim as received, alongside inspectable sources and a clear separation from confirmed provider expiry signals.
 - [x] Add regression and browser coverage for direct Leaving Soon model response rendering, loading, error, and source-link states; publish the verified update.
+- [x] Audit the current dependency manifest, migrations, application logs, release checklist, and source boundaries for reproducible final-release issues.
+- [x] Resolve any reproducible application, build, browser, accessibility, or standalone-runtime issues found in the final release audit.
+- [x] Rerun complete unit, browser, type, production-build, responsive, and standalone server smoke validation; publish the final verified build.
