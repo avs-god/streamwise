@@ -1,6 +1,6 @@
 # Portable deployment
 
-Streamwise is a full-stack React, Express, and tRPC application. The repository supports the managed deployment and an independent Node-compatible deployment from GitHub. Vercel uses the committed `api/index.ts` serverless entrypoint for API requests and `dist/public` for the compiled single-page client.
+Streamwise is a full-stack React, Express, and tRPC application. The repository supports the managed deployment and an independent Node-compatible deployment from GitHub. Vercel uses the committed `api/index.js` serverless wrapper, which imports the generated `dist/vercel-api.js` Express bundle, while `dist/public` contains the compiled single-page client.
 
 ## GitHub and Vercel
 
@@ -45,12 +45,10 @@ pnpm install --frozen-lockfile
 pnpm check
 pnpm build
 pnpm test
-pnpm exec esbuild api/index.ts --platform=node --packages=external --bundle --format=esm --outfile=.tmp-vercel-api.mjs
 node scripts/vercel-smoke.mjs
-rm -f .tmp-vercel-api.mjs
 ```
 
-The smoke test imports the compiled serverless adapter, exercises `/api/trpc/auth.me`, exercises the rewritten `/api/index/trpc/auth.me` equivalent, and verifies that both paths return the same response class without requiring provider credentials.
+The production build emits both `dist/index.js` for the standalone server and `dist/vercel-api.js` for the Vercel wrapper. The smoke test imports `api/index.js`, exercises `/api/trpc/auth.me`, exercises the rewritten `/api/index/trpc/auth.me` equivalent, and verifies that both paths return the same response class without requiring provider credentials.
 
 ## References
 

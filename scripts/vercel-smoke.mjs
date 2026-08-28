@@ -1,6 +1,6 @@
 import http from "node:http";
 import { once } from "node:events";
-import app from "../.tmp-vercel-api.mjs";
+import app from "../api/index.js";
 
 const server = http.createServer(app);
 server.listen(0, "127.0.0.1");
