@@ -270,6 +270,6 @@
 - [x] Normalize rewritten Vercel API paths inside the Express serverless adapter.
 - [x] Load analytics only when configured so optional values do not create build-time interpolation warnings.
 - [x] Validate Vercel-style API compilation, route parity, SPA fallback, tests, and standalone runtime; document and checkpoint the release.
-- [ ] Deploy the verified Streamwise release through the configured Vercel connector and verify the resulting deployment URL and status.
+- [x] Deploy the verified Streamwise release through the configured Vercel connector and verify the resulting deployment URL and status.
 - [x] Remove the unsupported explicit Vercel function runtime and redeploy using Vercel’s automatic Node runtime detection.
 - [x] Bundle the Express API for Vercel so the production function does not depend on extensionless TypeScript imports at runtime.
