@@ -1,11 +1,11 @@
 import { parse as parseCookie } from "cookie";
-import type { Express, Request, Response } from "express";
+import type { Application, Request, Response } from "express";
 import { COOKIE_NAME, ONE_YEAR_MS, OAUTH_STATE_COOKIE } from "../../shared/const";
 import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
 import { createPortableSession, portableConfigured } from "./portableAuth";
 
-export function registerPortableOAuthRoutes(app: Express) {
+export function registerPortableOAuthRoutes(app: Application) {
   app.get("/api/auth/google/start", (req, res) => {
     if (!portableConfigured()) return res.status(503).json({ error: "Google OAuth is not configured." });
     const nonce = crypto.randomUUID(); res.cookie(OAUTH_STATE_COOKIE, nonce, { ...getSessionCookieOptions(req), maxAge: 600_000 });

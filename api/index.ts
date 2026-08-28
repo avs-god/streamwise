@@ -11,6 +11,16 @@ import { streamwiseRefreshHandler } from "../server/scheduledRefresh";
 const app = express();
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+// Vercel rewrites /api/* into this function. Preserve the public API path
+// when the platform exposes the rewritten pathname as /api/index[/...].
+app.use((req, _res, next) => {
+  if (req.url === "/api/index" || req.url.startsWith("/api/index/")) {
+    req.url = `/api${req.url.slice("/api/index".length) || "/"}`;
+  }
+  next();
+});
+
 registerStorageProxy(app);
 registerOAuthRoutes(app);
 registerPortableOAuthRoutes(app);

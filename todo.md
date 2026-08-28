@@ -263,3 +263,10 @@
 - [x] Make mobile navigation reliably expose Community and Assistant without clipping, while preserving keyboard controls and administrator-only entries.
 - [x] Reorganize Community into a mobile-first Reddit-inspired thread feed with topic navigation, clear thread metadata, nested comment hierarchy, focused reading, and existing report/moderation controls.
 - [x] Add unit and browser coverage for mobile Community and Assistant navigation plus nested thread and reply interactions; run full validation and publish the update.
+- [x] Audit the GitHub-synced repository as Vercel consumes it, including root/build settings, server entrypoint, TypeScript diagnostics, runtime routes, and required environment variables.
+- [x] Fix reproducible GitHub-to-Vercel build or runtime compatibility issues without overwriting unrelated synced changes.
+- [x] Validate a clean repository-style build, standalone server routes/assets, and Vercel-compatible environment fallback behavior; checkpoint the fix and document required Vercel settings.
+- [x] Replace non-portable Vercel static-copy routing with explicit compiled output and API-function rewrites.
+- [x] Normalize rewritten Vercel API paths inside the Express serverless adapter.
+- [x] Load analytics only when configured so optional values do not create build-time interpolation warnings.
+- [x] Validate Vercel-style API compilation, route parity, SPA fallback, tests, and standalone runtime; document and checkpoint the release.
