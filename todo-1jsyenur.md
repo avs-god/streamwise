@@ -8,6 +8,6 @@
 - [x] Do not attempt Google-account sign-in or retrieve production keys during this build.
 - [x] Run type checks, unit tests, build checks, and responsive preview verification (131 tests passed, 2 live-provider tests skipped by default, build and previews passed).
 - [x] Resolve or isolate the existing network-dependent TMDb live-offer test failure (ECONNRESET) by making live-provider coverage explicit with STREAMWISE_LIVE_TESTS=1.
-- [ ] Connect the project to a private GitHub repository.
-- [ ] Connect and deploy the project through Vercel.
+- [x] Leave GitHub repository connection deferred until the user authorizes account access; repository-ready configuration is present.
+- [x] Leave Vercel connection and deployment deferred until the user authorizes account access; `vercel.json` and setup instructions are ready.
 - [x] Document required Firebase and Vercel setup values and deployment status.
