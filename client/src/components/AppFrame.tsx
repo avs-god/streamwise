@@ -1,7 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import AssistantLauncher from "@/components/AssistantLauncher";
 import PwaInstallButton from "@/components/PwaInstallButton";
-import { startLogin } from "@/const";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -26,7 +25,7 @@ const mobileExploreNav = nav.filter(item => ["/", "/recommendations", "/communit
 const mobilePlanningNav = nav.filter(item => !["/", "/recommendations", "/community", "/assistant"].includes(item.href));
 
 export default function AppFrame({ children }: { children: React.ReactNode }) {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout, signIn } = useAuth();
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const profile = trpc.tasteProfile.get.useQuery(undefined, { enabled: Boolean(user), retry: false });
@@ -66,7 +65,7 @@ export default function AppFrame({ children }: { children: React.ReactNode }) {
                 <button onClick={logout} title="Sign out" aria-label="Sign out" className="rounded-full p-1.5 text-[#557066] transition-colors hover:bg-[#eee9dc] hover:text-[#234c3c]"><LogOut className="size-4" /></button>
               </div>
             ) : (
-              <Button onClick={startLogin} size="sm" className="rounded-full bg-[#1e4a3a] px-4 text-[#fbf8ee] hover:bg-[#153a2d]">Sign in <ArrowUpRight className="size-3.5" /></Button>
+              <Button onClick={() => void signIn()} size="sm" className="rounded-full bg-[#1e4a3a] px-4 text-[#fbf8ee] hover:bg-[#153a2d]">Sign in <ArrowUpRight className="size-3.5" /></Button>
             )}
           </div>
         </div>

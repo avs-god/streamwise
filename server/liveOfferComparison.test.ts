@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getCatalogDetail, setCatalogAccessTokenForTests } from "./catalog";
 
 describe("live legal-offer comparison", () => {
-  it("returns separately labelled TMDb/JustWatch, Watchmode, and Streaming Availability offers for a mapped India title", async () => {
+  it.skipIf(process.env.STREAMWISE_LIVE_TESTS !== "1")("returns separately labelled TMDb/JustWatch, Watchmode, and Streaming Availability offers for a mapped India title", async () => {
     setCatalogAccessTokenForTests(null);
     const result = await getCatalogDetail({ id: 27205, mediaType: "movie", region: "IN", language: "en-US" });
     expect(result.configured).toBe(true);
